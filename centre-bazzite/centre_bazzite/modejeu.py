@@ -409,16 +409,18 @@ class ModeJeu:
         maintiens repris dès que le jeu est vu, Ollama pas touché, fin après ABSENCES_FIN tours sans jeu), close
         aussitôt si le mode jeu a été coupé (« restaure »), ou close sans relancer Ollama (« redemarrage »)."""
         self._ecrire(service={"pid": os.getpid(), "boot_id": self.boot(), "depuis": self.maintenant()})
-        return self._reprendre(restauration=False)
+        resultat = self._reprendre(restauration=False)
+        if resultat in ("rien", "continue"):        # « restaure » et « redemarrage » ont publié en fermant la partie
+            self._publier()                         # etat.json dit tout de suite que le service tourne (essai T10)
+        return resultat
 
     def suspendre(self):
         """D7 (SIGTERM : fin de session, relance d'install.sh, extinction) : les maintiens tombent avec les connexions,
-        la partie reste notée ; la reprise décidera. Si une partie est notée, etat.json est republié tout de suite
-        (RF-m1) : le mode jeu y devient « interrompu », qui est la vérité, au lieu de rester « actif »."""
+        la partie reste notée ; la reprise décidera. etat.json est republié tout de suite (RF-m1) : le mode jeu y
+        devient « interrompu » (partie notée) ou « arrete », qui est la vérité, au lieu de rester « actif » ou « pret »."""
         self._fermer()
         self._ecrire(service=None)
-        if lire(self.dossier)["partie"] is not None:
-            self._publier()
+        self._publier()
 
 
 def restaurer(*, si_orphelin=False, run=commun.run, jeu=commun.jeu_en_cours, boot=taches.boot_id,

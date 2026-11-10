@@ -507,12 +507,25 @@ class Restauration(Base):
         resume = modejeu.resume(self.dossier, vivant=lambda pid: True, boot=lambda: BOOT, reglages=lambda: dict(TOUT))
         self.assertEqual(resume["etat"], "interrompu")
 
-    def test_suspendre_sans_partie_ne_publie_rien_et_publication_en_echec_sans_effet(self):
+    def test_demarrer_sans_partie_publie_l_etat_pret(self):
+        """Essai réel (T10) : après une remise faite service arrêté, etat.json disait « Le service du mode jeu ne tourne
+        pas » ; le service relancé sans partie doit le republier aussitôt (« pret »)."""
         self.jeu = None
         a = self.mode()
         a.demarrer()
+        self.assertEqual(self.publications, [1])
+        resume = modejeu.resume(self.dossier, vivant=lambda pid: True, boot=lambda: BOOT, reglages=lambda: dict(TOUT))
+        self.assertEqual(resume["etat"], "pret")
+
+    def test_suspendre_sans_partie_publie_l_etat_arrete_et_publication_en_echec_sans_effet(self):
+        self.jeu = None
+        a = self.mode()
+        a.demarrer()
+        self.publications.clear()
         a.suspendre()
-        self.assertEqual(self.publications, [])
+        self.assertEqual(self.publications, [1])
+        resume = modejeu.resume(self.dossier, vivant=lambda pid: True, boot=lambda: BOOT, reglages=lambda: dict(TOUT))
+        self.assertEqual(resume["etat"], "arrete")
         self.jeu = JEU
 
         def en_panne():
@@ -896,9 +909,9 @@ class Cli(BaseCli):
         self.assertEqual(donnees["partie"]["jeu"], JEU)          # D7 : la partie reste notée
         self.assertIsNone(donnees["service"])
         self.assertEqual(self.run.ordres(), [])
-        # publié par `ecrire_leger` au début de la partie, puis à la suspension (RF-m1 : le mode jeu devient
-        # « interrompu » tout de suite)
-        self.assertEqual(self.legers, [1, 1])
+        # publié par `ecrire_leger` au lancement du service (« pret »), au début de la partie, puis à la suspension
+        # (RF-m1 : le mode jeu devient « interrompu » tout de suite)
+        self.assertEqual(self.legers, [1, 1, 1])
 
     def test_cli_regler(self):
         with configuration("") as chemin:
