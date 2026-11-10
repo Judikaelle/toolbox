@@ -6,3 +6,5 @@ __pycache__/
 # notes et audit personnels du PC : gardés en local, jamais publiés
 research_notes/
 reports/
+# conception, plans et décisions (contiennent des informations personnelles) : gardés en local
+docs/
