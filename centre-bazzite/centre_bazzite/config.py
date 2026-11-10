@@ -24,8 +24,10 @@ def _avertir(message):
     print(f"Health Hub, configuration : {message}", file=sys.stderr)
 
 
-def lire(chemin=None):
-    """Le contenu du fichier (dict) ; {} s'il est absent, ou illisible (avec un avertissement)."""
+def lire(chemin=None, avertir=None):
+    """Le contenu du fichier (dict) ; {} s'il est absent, ou illisible (avec un avertissement, par `avertir` s'il est
+    donné : le mode jeu relit sa section toutes les 5 s et n'écrit chaque message qu'une fois)."""
+    avertir = avertir or _avertir
     chemin = Path(chemin) if chemin is not None else CHEMIN
     try:
         with open(chemin, "rb") as fichier:
@@ -33,16 +35,16 @@ def lire(chemin=None):
     except FileNotFoundError:
         return {}
     except (OSError, ValueError) as exc:     # TOMLDecodeError et UnicodeDecodeError sont des ValueError
-        _avertir(f"{chemin} illisible, valeurs par défaut : {exc}")
+        avertir(f"{chemin} illisible, valeurs par défaut : {exc}")
         return {}
 
 
-def _section(donnees, *cles):
+def _section(donnees, *cles, avertir=None):
     """donnees[cle1][cle2]… s'il s'agit bien de tables ; sinon {} (avec un avertissement si la clé existe)."""
     for cle in cles:
         valeur = donnees.get(cle, {}) if isinstance(donnees, dict) else {}
         if not isinstance(valeur, dict):
-            _avertir(f"« {cle} » ignoré : une table était attendue")
+            (avertir or _avertir)(f"« {cle} » ignoré : une table était attendue")
             return {}
         donnees = valeur
     return donnees
@@ -151,3 +153,57 @@ def optimiser(chemin=None):
 def contexte_resume(chemin=None):
     """Qui lit les résumés des notes de version, tel que le modèle Ollama le lit : « Tu résumes … pour <contexte>. »"""
     return _texte(_section(lire(chemin), "resume"), "contexte", CONTEXTE_PAR_DEFAUT)
+
+
+def _chemin_absolu(texte):
+    """« ~/x » ou « /x » en Path ; None pour tout le reste (y compris un chemin relatif, ambigu)."""
+    if not isinstance(texte, str) or not texte.strip():
+        return None
+    p = Path(os.path.expanduser(texte))
+    return p if p.is_absolute() else None
+
+
+def jeux(chemin=None):
+    """Où chercher des jeux en plus de ce que Health Hub trouve seul : `steam` (bibliothèques Steam en plus de
+    libraryfolders.vdf, [jeux] steam = […]) et `emulateurs` ([[jeux.emulateurs]] : nom, dossier absolu ou ~, extensions
+    facultatives ; sans extensions, tout compte sauf images, textes et journaux). Aucun par défaut."""
+    section = _section(lire(chemin), "jeux")
+    steam = []
+    for texte in _liste(section, "steam"):
+        p = _chemin_absolu(texte)
+        if p is None:
+            _avertir(f"bibliothèque Steam ignorée (il faut un chemin absolu ou en ~) : {texte!r}")
+        else:
+            steam.append(p)
+    emulateurs = []
+    for e in _liste(section, "emulateurs"):
+        dossier = _chemin_absolu(e.get("dossier")) if isinstance(e, dict) else None
+        extensions = e.get("extensions") if isinstance(e, dict) else None
+        if not isinstance(e, dict) or not _texte(e, "nom") or dossier is None \
+                or not (extensions is None or (isinstance(extensions, list) and extensions
+                                               and all(isinstance(x, str) and x.strip(". ") for x in extensions))):
+            _avertir(f"émulateur ignoré (il faut nom, dossier absolu ou en ~, et si besoin extensions) : {e!r}")
+            continue
+        emulateurs.append({"nom": e["nom"], "dossier": dossier,
+                           "extensions": tuple("." + x.strip(". ").lower() for x in extensions) if extensions else None})
+    return {"steam": steam, "emulateurs": emulateurs}
+
+
+# --- Mode jeu (Task 4) ---
+MODEJEU = ("actif", "ollama", "ne_pas_deranger", "profil", "taches")
+
+
+def modejeu(chemin=None, avertir=None):
+    """Les réglages par défaut du mode jeu ([modejeu]) : tout est coché (spec §5), puis les valeurs du fichier. Une clé
+    inconnue ou une valeur non booléenne est ignorée, avec un avertissement (par `avertir` s'il est donné). Les
+    interrupteurs de la fenêtre l'emportent ensuite (modejeu.reglages)."""
+    avertir = avertir or _avertir
+    res = dict.fromkeys(MODEJEU, True)
+    for cle, valeur in _section(lire(chemin, avertir), "modejeu", avertir=avertir).items():
+        if cle not in res:
+            avertir(f"modejeu.{cle} ignoré : réglage inconnu")
+        elif not isinstance(valeur, bool):
+            avertir(f"modejeu.{cle} ignoré : true ou false attendu")
+        else:
+            res[cle] = valeur
+    return res

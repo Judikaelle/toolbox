@@ -1,0 +1,235 @@
+{
+ "genere": "2026-11-10T09:00:00",
+ "bibliotheques": [
+  {
+   "id": "steam:/var/mnt/DONNEES/SteamLibrary",
+   "type": "steam",
+   "nom": "Steam (Données)",
+   "chemin": "/var/mnt/DONNEES/SteamLibrary",
+   "absente": false,
+   "nombre": 4,
+   "octets": 123480309760,
+   "taille": "115 Go"
+  },
+  {
+   "id": "steam:/home/exemple/.local/share/Steam",
+   "type": "steam",
+   "nom": "Steam (Home)",
+   "chemin": "/home/exemple/.local/share/Steam",
+   "absente": false,
+   "nombre": 1,
+   "octets": 26843545600,
+   "taille": "25 Go"
+  },
+  {
+   "id": "heroic:legendary",
+   "type": "heroic",
+   "nom": "Heroic (Epic)",
+   "chemin": null,
+   "absente": false,
+   "nombre": 1,
+   "octets": 40802189312,
+   "taille": "38 Go"
+  },
+  {
+   "id": "lutris",
+   "type": "lutris",
+   "nom": "Lutris",
+   "chemin": null,
+   "absente": false,
+   "nombre": 1,
+   "octets": 19327352832,
+   "taille": "18 Go"
+  },
+  {
+   "id": "emulateur:Console",
+   "type": "emulateur",
+   "nom": "Console",
+   "chemin": "/var/mnt/DONNEES/Console",
+   "absente": false,
+   "nombre": 2,
+   "octets": 5368709120,
+   "taille": "5,0 Go"
+  },
+  {
+   "id": "steam:/var/mnt/EXTERNE/SteamLibrary",
+   "type": "steam",
+   "nom": "Steam (Externe)",
+   "chemin": "/var/mnt/EXTERNE/SteamLibrary",
+   "absente": true,
+   "nombre": 0,
+   "octets": 0,
+   "taille": "0 Mo"
+  }
+ ],
+ "jeux": [
+  {
+   "id": "steam:/var/mnt/DONNEES/SteamLibrary:101",
+   "titre": "Jeu de course",
+   "bibliotheque": "steam:/var/mnt/DONNEES/SteamLibrary",
+   "type": "steam",
+   "octets": 64424509440,
+   "taille": "60 Go",
+   "derniere_partie": "2026-11-09T21:10:00",
+   "chemin": "/var/mnt/DONNEES/SteamLibrary/steamapps/common/Jeu de course"
+  },
+  {
+   "id": "steam:/var/mnt/DONNEES/SteamLibrary:202",
+   "titre": "Aventure",
+   "bibliotheque": "steam:/var/mnt/DONNEES/SteamLibrary",
+   "type": "steam",
+   "octets": 42949672960,
+   "taille": "40 Go",
+   "derniere_partie": "2026-10-02T20:00:00",
+   "chemin": "/var/mnt/DONNEES/SteamLibrary/steamapps/common/Aventure"
+  },
+  {
+   "id": "steam:/var/mnt/DONNEES/SteamLibrary:303",
+   "titre": "Plateformes",
+   "bibliotheque": "steam:/var/mnt/DONNEES/SteamLibrary",
+   "type": "steam",
+   "octets": 12884901888,
+   "taille": "12 Go",
+   "derniere_partie": null,
+   "chemin": "/var/mnt/DONNEES/SteamLibrary/steamapps/common/Plateformes"
+  },
+  {
+   "id": "steam:/var/mnt/DONNEES/SteamLibrary:404",
+   "titre": "Énigmes",
+   "bibliotheque": "steam:/var/mnt/DONNEES/SteamLibrary",
+   "type": "steam",
+   "octets": 3221225472,
+   "taille": "3,0 Go",
+   "derniere_partie": "2026-08-15T18:30:00",
+   "chemin": "/var/mnt/DONNEES/SteamLibrary/steamapps/common/Enigmes"
+  },
+  {
+   "id": "steam:/home/exemple/.local/share/Steam:505",
+   "titre": "Stratégie",
+   "bibliotheque": "steam:/home/exemple/.local/share/Steam",
+   "type": "steam",
+   "octets": 26843545600,
+   "taille": "25 Go",
+   "derniere_partie": "2026-11-01T19:00:00",
+   "chemin": "/home/exemple/.local/share/Steam/steamapps/common/Strategie"
+  },
+  {
+   "id": "heroic:legendary:aventure",
+   "titre": "Aventure",
+   "bibliotheque": "heroic:legendary",
+   "type": "heroic",
+   "octets": 40802189312,
+   "taille": "38 Go",
+   "derniere_partie": "2026-09-10T22:00:00",
+   "chemin": "/home/exemple/Jeux/Heroic/Aventure"
+  },
+  {
+   "id": "lutris:jeu-de-role:/home/exemple/Jeux/jeu-de-role",
+   "titre": "Jeu de rôle",
+   "bibliotheque": "lutris",
+   "type": "lutris",
+   "octets": 19327352832,
+   "taille": "18 Go",
+   "derniere_partie": null,
+   "chemin": "/home/exemple/Jeux/jeu-de-role"
+  },
+  {
+   "id": "emulateur:Console:Rallye",
+   "titre": "Rallye",
+   "bibliotheque": "emulateur:Console",
+   "type": "emulateur",
+   "octets": 5368709120,
+   "taille": "5,0 Go",
+   "derniere_partie": null,
+   "chemin": "/var/mnt/DONNEES/Console/Rallye"
+  },
+  {
+   "id": "emulateur:Console:Casse-tete",
+   "titre": "Casse-tête",
+   "bibliotheque": "emulateur:Console",
+   "type": "emulateur",
+   "octets": null,
+   "taille": "Inconnue",
+   "derniere_partie": null,
+   "chemin": "/var/mnt/DONNEES/Console/Casse-tete"
+  }
+ ],
+ "doublons": [
+  {
+   "titre": "Aventure",
+   "jeux": [
+    "steam:/var/mnt/DONNEES/SteamLibrary:202",
+    "heroic:legendary:aventure"
+   ],
+   "octets": 83751862272,
+   "en_trop": 40802189312,
+   "taille_en_trop": "38 Go"
+  }
+ ],
+ "prefixes": {
+  "elements": [
+   {
+    "cible": "/home/exemple/.local/share/Steam/steamapps/compatdata/3000000000",
+    "libelle": "Raccourci non-Steam 3000000000",
+    "nature": "non_steam",
+    "bibliotheque": "Steam (Home)",
+    "octets": 1610612736,
+    "taille": "1,5 Go"
+   },
+   {
+    "cible": "/var/mnt/DONNEES/SteamLibrary/steamapps/compatdata/606",
+    "libelle": "Jeu Steam 606 (désinstallé)",
+    "nature": "desinstalle",
+    "bibliotheque": "Steam (Données)",
+    "octets": 838860800,
+    "taille": "800 Mo"
+   },
+   {
+    "cible": "/var/mnt/DONNEES/SteamLibrary/steamapps/compatdata/pfx-copie",
+    "libelle": "pfx-copie (nom inhabituel : copie ou sauvegarde ?)",
+    "nature": "inhabituel",
+    "bibliotheque": "Steam (Données)",
+    "octets": 209715200,
+    "taille": "200 Mo"
+   }
+  ],
+  "octets": 2659188736,
+  "taille": "2,5 Go"
+ },
+ "gels": {
+  "dossier": "/home/exemple/.local/share/freeze-jeu",
+  "nombre": 3,
+  "automatiques": 2,
+  "dernier": "2026-09-21T20:37:18",
+  "liste": [
+   {
+    "fichier": "/home/exemple/.local/share/freeze-jeu/20260921-203718-GEL-JeuDeCourse.txt",
+    "date": "2026-09-21T20:37:18",
+    "jeu": "JeuDeCourse",
+    "automatique": true,
+    "declencheur": "image figée depuis 8 s, processeur graphique à 100 %",
+    "octets": 49152,
+    "taille": "0 Mo"
+   },
+   {
+    "fichier": "/home/exemple/.local/share/freeze-jeu/20260918-220310-Aventure.txt",
+    "date": "2026-09-18T22:03:10",
+    "jeu": "Aventure",
+    "automatique": false,
+    "declencheur": null,
+    "octets": 36864,
+    "taille": "0 Mo"
+   },
+   {
+    "fichier": "/home/exemple/.local/share/freeze-jeu/20260903-201500-GEL-Plateformes.txt",
+    "date": "2026-09-03T20:15:00",
+    "jeu": "Plateformes",
+    "automatique": true,
+    "declencheur": "image figée depuis 12 s, processeur graphique à 0 %",
+    "octets": 53248,
+    "taille": "0 Mo"
+   }
+  ]
+ },
+ "erreurs": []
+}

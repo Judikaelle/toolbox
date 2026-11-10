@@ -12,12 +12,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "fenetre"))
 
 from datetime import datetime, timedelta  # noqa: E402
 
-from PySide6.QtCore import QElapsedTimer, QEventLoop, QProcess, QThread, QTimer  # noqa: E402
+from PySide6.QtCore import QElapsedTimer, QEventLoop, QProcess, QThread  # noqa: E402
 
 import pont  # noqa: E402
 from centre_bazzite import menage  # noqa: E402
 
-from tests.appli_qt import APP  # noqa: E402
+from tests.appli_qt import APP, arreter_pont  # noqa: E402
 
 ETAT = {
     "couleur": "orange", "phrase": "Tout est à jour.", "phrase2": "Une chose mérite un coup d'œil.",
@@ -62,7 +62,7 @@ class Base(unittest.TestCase):
         if etat is not None:
             ecrire_atomique(self.chemin, etat)
         p = pont.Pont(self.chemin, **options)
-        self.addCleanup(lambda: [t.stop() for t in p.findChildren(QTimer)])
+        self.addCleanup(arreter_pont, p)
         return p
 
 
@@ -227,6 +227,16 @@ def session_finie(debut, fin, succes=True, bilan="Tout est à jour."):
     return {"debut": debut, "fin": fin, "succes": succes, "bilan": bilan, "etapes": {}}
 
 
+class Filet(unittest.TestCase):
+    def test_aucune_vraie_commande_sans_faux(self):
+        """UI-m1 : hors du faux d'un test, QProcess.startDetached est le filet des tests : un pont oublié (son suivi de
+        5 s) ne lance jamais une vraie commande."""
+        from tests import appli_qt
+        self.assertIs(QProcess.startDetached, appli_qt.sans_commande)
+        with mock.patch("sys.stderr"):
+            self.assertEqual(QProcess.startDetached("centre-bazzite", ["rafraichir", "--leger"]), (False, 0))
+
+
 class TachesAffichees(unittest.TestCase):
     def test_taches_session_en_cours(self):
         en_cours = {"debut": "2026-11-09T14:52:00", "global": 40,
@@ -355,6 +365,169 @@ class Taches(Base):
         self.pont().rafraichirStockage()
         self.assertEqual(self.appels, [["centre-bazzite", "stockage"]])
 
+    def test_rafraichir_jeux_lance_trois_commandes(self):
+        """Ouverture de la page Jeux : le relevé des jeux, celui du stockage (ménage des jeux), puis l'état (mode jeu)."""
+        self.pont().rafraichirJeux()
+        self.assertEqual(self.appels, [["centre-bazzite", "jeux"], ["centre-bazzite", "stockage"], RAFRAICHIR])
+
+    def test_rafraichir_jeux_pendant_une_partie_seulement_leger(self):
+        """RF-m3 : pendant une partie (un jeu dans l'état, ou le mode jeu actif), l'ouverture de la page Jeux ne lance
+        pas les relevés lourds (jeux, stockage) ; seulement l'état."""
+        for etat in (dict(ETAT, jeu="Jeu de course"), dict(ETAT, jeu=None, modejeu={"etat": "actif"})):
+            with self.subTest(etat=etat):
+                self.appels.clear()
+                self.pont(etat).rafraichirJeux()
+                self.assertEqual(self.appels, [RAFRAICHIR])
+        for modejeu in ({"etat": "interrompu"}, {"etat": "pret"}, None):
+            with self.subTest(modejeu=modejeu):
+                self.appels.clear()
+                self.pont(dict(ETAT, jeu=None, modejeu=modejeu)).rafraichirJeux()
+                self.assertEqual(self.appels, [["centre-bazzite", "jeux"], ["centre-bazzite", "stockage"], RAFRAICHIR])
+
+    def test_jeux_lu_depuis_le_dossier(self):
+        p = self.pont()
+        self.assertEqual(p.jeux, {})                                    # pas encore de relevé
+        jeux = {"genere": "2026-11-10T09:00:00", "bibliotheques": [{"id": "lutris", "nom": "Lutris"}], "erreurs": []}
+        signaux = []
+        p.jeuxChange.connect(lambda: signaux.append(1))
+        ecrire_atomique(self.dossier / "jeux.json", jeux)
+        attendre(3000, lambda: p.jeux)
+        self.assertEqual(p.property("jeux")["bibliotheques"][0]["nom"], "Lutris")
+        self.assertEqual(signaux, [1])
+        (self.dossier / "jeux.json").write_text("{ coupé", encoding="utf-8")
+        p.recharger()
+        self.assertEqual(p.jeux, jeux)                                  # illisible : le relevé précédent reste
+        ecrire_atomique(self.dossier / "jeux.json", dict(jeux, erreurs=["Lutris : illisible (OSError)"]))
+        attendre(3000, lambda: p.jeux.get("erreurs"))
+        self.assertEqual(p.jeux["erreurs"], ["Lutris : illisible (OSError)"])
+
+    JEUX = {"gels": {"dossier": "/home/x/g", "nombre": 2, "liste": [
+        {"fichier": "/home/x/g/20260921-203718-GEL-Jeu.txt", "date": "2026-09-21T20:37:18"},
+        {"fichier": "/etc/passwd", "date": "2026-09-20T10:00:00"}]}}       # hors du dossier : jamais ouvert
+
+    def test_ouvrir_gel(self):
+        ecrire_atomique(self.dossier / "jeux.json", self.JEUX)
+        self.pont().ouvrirGel("20260921-203718-GEL-Jeu.txt")
+        self.assertEqual(self.appels, [["xdg-open", "/home/x/g/20260921-203718-GEL-Jeu.txt"]])
+
+    def test_ouvrir_gel_garde(self):
+        """Seulement un nom de la liste des gels, sans « / », dans le dossier des gels."""
+        ecrire_atomique(self.dossier / "jeux.json", self.JEUX)
+        p = self.pont()
+        for nom in ("inconnu.txt", "../x", "", "/home/x/g/20260921-203718-GEL-Jeu.txt", "g/20260921-203718-GEL-Jeu.txt",
+                    "passwd", ".", ".."):
+            p.ouvrirGel(nom)
+        self.assertEqual(self.appels, [])
+
+    def test_ouvrir_dossier_gels(self):
+        ecrire_atomique(self.dossier / "jeux.json", self.JEUX)
+        self.pont().ouvrirDossierGels()
+        self.assertEqual(self.appels, [["xdg-open", "/home/x/g"]])
+
+    def test_sans_dossier_de_gels_rien(self):
+        p = self.pont()
+        p.ouvrirDossierGels()
+        p.ouvrirGel("20260921-203718-GEL-Jeu.txt")
+        ecrire_atomique(self.dossier / "jeux.json", {"gels": {"dossier": "", "liste": []}})
+        p.recharger()
+        p.ouvrirDossierGels()
+        self.assertEqual(self.appels, [])
+
+    def test_regler_mode_jeu(self):
+        p = self.pont()
+        p.reglerModeJeu("ollama", False)
+        p.reglerModeJeu("actif", True)
+        self.assertEqual(self.appels, [["centre-bazzite", "modejeu", "regler", "ollama", "non"],
+                                       ["centre-bazzite", "modejeu", "regler", "actif", "oui"]])
+        self.assertTrue(p._minuteur.isActive())             # l'état suit quelques secondes
+
+    def test_regler_mode_jeu_garde(self):
+        """Seulement une clé de modejeu.CLES ; sous état forcé, rien (test d'état forcé)."""
+        p = self.pont()
+        for cle in ("turbo", "", "actif --x", "ACTIF"):
+            p.reglerModeJeu(cle, True)
+        self.assertEqual(self.appels, [])
+        self.assertFalse(p._minuteur.isActive())
+
+    def test_restaurer_mode_jeu(self):
+        """P5 : passe par `modejeu restaurer`, qui vérifie toujours que le service n'est pas là."""
+        p = self.pont()
+        p.restaurerModeJeu()
+        self.assertEqual(self.appels, [["centre-bazzite", "modejeu", "restaurer"]])
+
+    RESTAURER = ["centre-bazzite", "modejeu", "restaurer"]
+
+    def tache_restaurer(self, **champs):
+        """Ce que la CLI écrit (UI-m2) : la tâche « modejeu:restaurer » du panneau Activité."""
+        dossier = self.dossier / "taches"
+        dossier.mkdir(exist_ok=True)
+        t = {"id": "modejeu:restaurer", "type": "modejeu", "titre": "Remettre le bureau comme avant",
+             "statut": "en_cours", "progression": -1, "detail": "", "debut": "2026-11-10T21:30:00", "fin": None,
+             "unite": None, "pid": 4242, "boot": "b", "etapes": [], "journal": []}
+        t.update(champs)
+        ecrire_atomique(dossier / "modejeu_restaurer.json", t)
+
+    def test_restaurer_un_seul_a_la_fois_puis_la_phrase_de_la_cli(self):
+        """UI-m2 : pendant la remise, le pont refuse un second lancement (double clic) ; à la fin de la tâche que la CLI
+        écrit, il dit sa phrase, et un nouveau clic relance."""
+        (self.dossier / "taches").mkdir()
+        p = self.pont()
+        changements = []
+        p.restaurationChange.connect(lambda: changements.append((p.restaurationEnCours, p.retourRestauration)))
+        self.assertEqual((p.restaurationEnCours, p.retourRestauration), (False, ""))
+        p.restaurerModeJeu()
+        p.restaurerModeJeu()                                   # double clic
+        self.assertEqual(self.appels, [self.RESTAURER])
+        self.assertTrue(p.restaurationEnCours)
+        self.tache_restaurer()                                 # la CLI commence
+        attendre(2000, lambda: p.taches)
+        self.assertTrue(p.restaurationEnCours)
+        phrase = "Un jeu tourne encore : restauration à la fin de la partie."
+        self.tache_restaurer(statut="fini", detail=phrase, fin="2026-11-10T21:30:10")
+        attendre(3000, lambda: not p.restaurationEnCours)
+        self.assertEqual((p.restaurationEnCours, p.retourRestauration), (False, phrase))
+        self.assertEqual(changements, [(True, ""), (False, phrase)])
+        p.restaurerModeJeu()
+        self.assertEqual(self.appels, [self.RESTAURER, self.RESTAURER])
+        self.assertEqual((p.restaurationEnCours, p.retourRestauration), (True, ""))
+
+    def test_retour_de_restauration_efface_quand_une_partie_commence(self):
+        """La phrase de la dernière remise ne reste pas affichée pendant la partie suivante."""
+        phrase = "Mode jeu : bureau remis comme avant."
+        p = self.pont()
+        p.restaurerModeJeu()
+        self.tache_restaurer(statut="fini", detail=phrase, fin="2026-11-10T21:30:10")
+        attendre(3000, lambda: not p.restaurationEnCours)
+        self.assertEqual(p.retourRestauration, phrase)
+        ecrire_atomique(self.chemin, dict(ETAT, modejeu={"etat": "pret", "phrase": "Mode jeu prêt."}))
+        p.recharger()
+        self.assertEqual(p.retourRestauration, phrase)
+        ecrire_atomique(self.chemin, dict(ETAT, modejeu={"etat": "actif", "phrase": "Mode jeu actif."}))
+        p.recharger()
+        self.assertEqual(p.retourRestauration, "")
+
+    def test_restaurer_ne_confond_pas_une_ancienne_tache(self):
+        """Une remise finie d'avant le clic (même identifiant) ne met pas fin à la nouvelle."""
+        phrase = "Mode jeu : bureau remis comme avant."
+        self.tache_restaurer(statut="fini", detail="Aucune partie à restaurer.", fin="2026-11-10T20:00:10",
+                             debut="2026-11-10T20:00:00", pid=111)
+        p = self.pont()
+        p.restaurerModeJeu()
+        p.recharger()
+        self.assertTrue(p.restaurationEnCours)
+        self.tache_restaurer(statut="fini", detail=phrase, pid=222, fin="2026-11-10T21:30:10")
+        attendre(3000, lambda: not p.restaurationEnCours)
+        self.assertEqual(p.retourRestauration, phrase)
+
+    def test_restaurer_sans_nouvelles_rend_le_bouton(self):
+        """Sans tâche finie (CLI absente, plantée avant d'écrire), le bouton revient après un délai, et le dit."""
+        p = self.pont()
+        p._delai_restauration.setInterval(50)
+        p.restaurerModeJeu()
+        attendre(2000, lambda: not p.restaurationEnCours)
+        self.assertFalse(p.restaurationEnCours)
+        self.assertEqual(p.retourRestauration, pont.SANS_NOUVELLES)
+
     def pont_avec_analyse(self, commande="/home/x/.local/bin/linstat", **options):
         stock = {"disques": [{"id": "nvme0n1", "volumes": [{"nom": "Données", "chemin": "/var/mnt/DONNEES"}]}],
                  "linstat": {"moteur": True, "commande": commande}, "analyses": {}}
@@ -391,8 +564,9 @@ class Taches(Base):
         """Sous --etat (captures), rien ne part vers la CLI : ni relevé, ni vérification, ni action d'un point."""
         ecrire_atomique(self.chemin, ETAT)
         p = pont.Pont(self.chemin, etat_force=True)
-        self.addCleanup(lambda: [t.stop() for t in p.findChildren(QTimer)])
+        self.addCleanup(arreter_pont, p)
         p.rafraichirStockage()
+        p.rafraichirJeux()          # P10 : chaque action de la page Jeux passe aussi par _demarrer
         p.verifier()
         p.rafraichir()
         p.toutMettreAJour()
@@ -411,7 +585,15 @@ class Taches(Base):
         p.carteDetaillee("/var/mnt/DONNEES")
         p.menage("caches", [{"cible": "/x", "libelle": "x", "octets": 1}])
         p.arreterAnalyse()
+        ecrire_atomique(self.dossier / "jeux.json", self.JEUX)
+        p.recharger()
+        self.assertEqual(p.jeux["gels"]["dossier"], "/home/x/g")         # chargé : le gel serait ouvert sans la garde
+        p.ouvrirGel("20260921-203718-GEL-Jeu.txt")
+        p.ouvrirDossierGels()
+        p.reglerModeJeu("ollama", False)
+        p.restaurerModeJeu()
         self.assertEqual(self.appels, [])
+        self.assertFalse(p.restaurationEnCours)              # rien n'est parti : rien n'est attendu
 
     CACHES = [{"cible": "/a", "libelle": "a", "octets": 10, "taille": "0 Mo"},
               {"cible": "/b", "libelle": "b", "octets": 20, "taille": "0 Mo"}]

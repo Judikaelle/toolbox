@@ -49,7 +49,7 @@
          "label": null,
          "mountpoints": [],
          "tran": "nvme",
-         "model": "NVMe Exemple SSD with Heatsink 2TB",
+         "model": "NVMe Exemple Z1 with Radiateur 2TB",
          "rm": false,
          "children": [
             {

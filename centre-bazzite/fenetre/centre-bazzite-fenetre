@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fenêtre du Health Hub : PySide6 + QML Kirigami, ouverte à la demande.
---capture <png> [--page accueil|majs|sante|stockage] [--onglet CLE] [--etat DOSSIER] [--taille LxH] [--activite] affiche la
+--capture <png> [--page accueil|majs|sante|stockage|jeux] [--onglet CLE] [--etat DOSSIER] [--taille LxH] [--activite] affiche la
 page, l'enregistre en image puis quitte (vérification sans intervention : ni résumé, ni marqueur « vu »)."""
 import argparse
 import os
@@ -20,9 +20,9 @@ import apparence  # noqa: E402
 from pont import Pont  # noqa: E402
 
 NOM = "centre-bazzite"
-PAGES = ("accueil", "majs", "sante", "stockage")
+PAGES = ("accueil", "majs", "sante", "stockage", "jeux")
 # Pages à onglets : la propriété de Main.qml qui garde l'onglet ouvert (--onglet la pose).
-ONGLETS = {"stockage": "ongletStockage", "sante": "ongletSante"}
+ONGLETS = {"stockage": "ongletStockage", "sante": "ongletSante", "jeux": "ongletJeux"}
 DELAI_CAPTURE_MS = 1500
 
 
@@ -43,7 +43,8 @@ def _arguments(argv):
     p.add_argument("--page", choices=PAGES, default="accueil", help="page affichée à l'ouverture")
     p.add_argument("--onglet", metavar="CLE",
                    help="onglet ouvert de la page (stockage : ensemble, ou le chemin d'un volume comme /var/mnt/DONNEES ; "
-                        "sante : resume, disques, gpu, systeme, controles ou journal)")
+                        "sante : resume, disques, gpu, systeme, controles ou journal ; "
+                        "jeux : ensemble, bibliotheques, menage, modejeu ou gels)")
     p.add_argument("--etat", metavar="DOSSIER", help="lit DOSSIER/etat.json au lieu de l'état réel (captures seulement)")
     p.add_argument("--activite", action="store_true", help="ouvre le panneau Activité à droite de la fenêtre")
     p.add_argument("--taille", metavar="LxH", type=_taille, help="taille de la fenêtre, par exemple 1000x700")

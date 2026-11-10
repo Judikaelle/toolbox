@@ -9,6 +9,7 @@ RowLayout {
     id: ligne
 
     required property var point
+    property int lignesTitre: 0              // > 0 : le titre est abrégé (…) au-delà de ce nombre de lignes
     property bool actionPermise: true        // faux : l'action du point n'est pas proposée (ex. pendant une mise à jour)
 
     readonly property bool echec: point.gravite === "echec"
@@ -47,6 +48,8 @@ RowLayout {
             text: ligne.point.titre ?? ""
             font.weight: Font.DemiBold
             wrapMode: Text.Wrap
+            maximumLineCount: ligne.lignesTitre > 0 ? ligne.lignesTitre : 2147483647
+            elide: ligne.lignesTitre > 0 ? Text.ElideRight : Text.ElideNone
         }
         Controls.Label {
             Layout.fillWidth: true

@@ -365,7 +365,7 @@ class Rubriques(unittest.TestCase):
         """Task 19 : l'onglet de la page Santé où se range chaque point (son « domaine »), pour les points que
         points.points produit vraiment, et un défaut « systeme »."""
         table = {
-            "ssd:NVMe Exemple SSD with Heatsink 2TB:usure": "disques",
+            "ssd:NVMe Exemple Z1 with Radiateur 2TB:usure": "disques",
             "ssd:X:critique:erreurs-media+0x04": "disques",
             "ssd:X:reserve": "disques", "ssd:X:chaleur": "disques",
             "stockage:erreurs-es": "disques",

@@ -130,10 +130,22 @@ class MenuDeplie(Base):
         self.assertEqual(accueil.property("text"), self.f.objet("menu-verification").property("text"))
 
     def test_entrees_bientot_grisees(self):
-        for nom in ("jeux", "demarrage"):
-            self.assertFalse(self.f.objet("menu-" + nom).property("disponible"), nom)
-        for nom in ("accueil", "majs", "sante", "stockage"):
+        self.assertFalse(self.f.objet("menu-demarrage").property("disponible"))
+        for nom in ("accueil", "majs", "sante", "stockage", "jeux"):
             self.assertTrue(self.f.objet("menu-" + nom).property("disponible"), nom)
+
+    def test_menu_jeux_disponible(self):
+        """Task 6 : « Jeux » est une entrée du menu, juste après Stockage ; un clic ouvre la page Jeux."""
+        entrees = sorted((o for o in self.f.objets("menu-") if o.property("entree") is not None
+                          and o.property("disponible")), key=lambda o: o.property("y"))
+        self.assertEqual([o.objectName() for o in entrees],
+                         ["menu-accueil", "menu-majs", "menu-sante", "menu-stockage", "menu-jeux"])
+        entrees = None
+        self.cliquer("menu-bouton-jeux")
+        self.assertEqual(self.fenetre.property("page"), "jeux")
+        self.assertTrue(self.f.objet("menu-jeux").property("active"))
+        self.assertIsNotNone(self.f.objet("page-jeux"))
+        self.assertIn(["centre-bazzite", "jeux"], self.appels)
 
     def test_entree_stockage_ouvre_la_page_stockage(self):
         self.cliquer("menu-bouton-stockage")
@@ -194,7 +206,8 @@ class MenuRail(Base):
         self.assertEqual(self.f.objet("menu-tout-mettre-a-jour").property("infobulle"), "Tout mettre à jour (Ctrl+U)")
 
     def test_infobulles_des_entrees(self):
-        self.assertEqual(self.f.objet("menu-jeux").property("infobulle"), "Jeux : bientôt")
+        self.assertEqual(self.f.objet("menu-demarrage").property("infobulle"), "Démarrage : bientôt")
+        self.assertEqual(self.f.objet("menu-jeux").property("infobulle"), "Jeux")
         self.assertEqual(self.f.objet("menu-stockage").property("infobulle"), "Stockage : 2 à regarder")
         self.assertEqual(self.f.objet("menu-sante").property("infobulle"), "Santé")
 

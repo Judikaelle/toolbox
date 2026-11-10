@@ -485,7 +485,8 @@ class LinStat(unittest.TestCase):
         self.assertEqual((r.etat, r.de, r.vers), (outils.MIS_A_JOUR, "aaaaaaa", "bbbbbbb"))
         self.assertIn("correctif", r.notes)
         cmds = self.commandes()
-        attendu = ["fetch", "rev-parse HEAD", "rev-parse @{u}", "merge --ff-only " + self.APRES, "bash install.sh"]
+        attendu = ["fetch", "rev-parse HEAD", "rev-parse @{u}", "diff --quiet", "merge --ff-only " + self.APRES,
+                   "bash install.sh"]
         position = 0
         for cmd in cmds:
             if position < len(attendu) and attendu[position] in cmd:
@@ -531,7 +532,7 @@ class LinStat(unittest.TestCase):
         r = self.lancer(False)
         self.assertEqual(r.etat, outils.ECHEC)
         self.assertEqual(r.message, "LinStat : git merge --ff-only a échoué")
-        self.assertFalse([c for c in self.commandes() if "install.sh" in c])
+        self.assertFalse([c for c in self.commandes() if c.endswith("bash install.sh")])
 
     def test_linstat_rev_parse_en_echec(self):
         self.installer_depot()
@@ -556,18 +557,22 @@ class LinStat(unittest.TestCase):
         r = self.lancer(False)
         self.assertEqual((r.etat, r.message), (outils.ECHEC, "LinStat : install.sh a échoué"))
 
-    def test_linstat_install_sh_change_pas_lance(self):
+    def test_linstat_install_change_n_avance_pas(self):
+        """Task 9 : install.sh est comparé AVANT l'avance rapide. Changé : résultat manuel, HEAD n'avance pas, donc le
+        rappel revient chaque nuit jusqu'à la relecture."""
         self.installer_depot()
         self.en_retard()
         self.reponses["diff --quiet"] = (1, "")
         r = self.lancer(False)
         self.assertEqual(r.etat, outils.MANUEL)
-        self.assertEqual(r.message, "LinStat : install.sh a changé — relis-le puis lance "
-                                    "bash ~/developer/linstat/install.sh")
+        self.assertEqual(r.message, "LinStat : install.sh a changé — relis-le, puis lance "
+                                    "git -C ~/developer/linstat merge --ff-only @{u} et bash ~/developer/linstat/install.sh")
         self.assertEqual((r.de, r.vers), ("aaaaaaa", "bbbbbbb"))
         self.assertIn("correctif", r.notes)
-        self.assertTrue([c for c in self.commandes() if "merge --ff-only" in c])
-        self.assertFalse([c for c in self.commandes() if c.endswith("bash install.sh")])
+        cmds = self.commandes()
+        self.assertFalse([c for c in cmds if " merge" in c and "merge-base" not in c], cmds)
+        self.assertFalse([c for c in cmds if c.endswith("bash install.sh")], cmds)
+        self.assertIn("diff --quiet %s %s -- install.sh" % (self.AVANT, self.APRES), " | ".join(cmds))
 
     def test_linstat_en_avance_rien_a_tirer(self):
         self.installer_depot()

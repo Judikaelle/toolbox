@@ -1,0 +1,6 @@
+{
+  "games": [
+    {"app_name": "1000000001", "title": "Aventure", "runner": "gog", "is_installed": false, "install": {}}
+  ],
+  "__timestamp": {"tmp": 0}
+}

@@ -13,8 +13,16 @@ from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
 
 import pont  # noqa: E402
 
-from tests.appli_qt import APP  # noqa: E402
+from tests.appli_qt import APP, arreter_pont  # noqa: E402
 ETATS = ICI / "echantillons" / "etats"
+
+
+def attendre(ms):
+    chrono = QElapsedTimer()
+    chrono.start()
+    while chrono.elapsed() < ms:
+        APP.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 10)
+        QThread.msleep(5)
 
 
 class Fenetre:
@@ -51,6 +59,7 @@ class Fenetre:
         return [o for o in self.tout() if (o.objectName() or "").startswith(prefixe)]
 
     def fermer(self):
+        arreter_pont(self.pont)             # UI-m1 : le pont d'un test fini ne lance plus rien
         self.racines[0].close()
         self.moteur.deleteLater()
         self.pont.deleteLater()
@@ -140,6 +149,62 @@ class AccueilVide(Base):
         self.assertEqual(self.f.objet("tuile-majs").property("valeur"), "À jour")
         self.assertEqual(self.f.objet("tuile-temperatures").property("valeur"), "—")
         self.assertEqual(self.f.objet("tuile-etat").property("valeur"), "Rien")
+
+
+class AccueilModeJeu(Base):
+    """Task 6 : le mode jeu se voit dans le bandeau d'accueil, seulement quand il agit (actif) ou qu'il attend de remettre
+    le bureau (interrompu) ; la phrase vient telle quelle de etat.json."""
+    dossier = "jeux-actif"
+
+    def badge(self):
+        b = self.f.objet("badge-modejeu")
+        self.assertIsNotNone(b)
+        return b.property("visible"), b.property("texte"), b.property("etat")
+
+    def test_accueil_badge_mode_jeu(self):
+        self.assertEqual(self.badge(), (True, "Mode jeu actif depuis 21 h 10", "info"))
+        # le badge est dans le bandeau d'accueil
+        parent = self.f.objet("badge-modejeu")
+        while parent is not None and parent.objectName() != "bandeau-accueil":
+            parent = parent.parentItem()
+        self.assertIsNotNone(parent)
+
+    def test_interrompu_en_attention_et_rien_sinon(self):
+        phrase = "Mode jeu interrompu : le bureau sera remis comme avant à la reprise du service."
+        attendu = {"interrompu": (True, phrase, "attention")}
+        for etat in ("interrompu", "pret", "desactive", "arrete"):
+            with self.subTest(etat=etat):
+                self.f.pont._etat = dict(self.f.pont.etat, modejeu={"etat": etat, "phrase": phrase})
+                self.f.pont.etatChange.emit()
+                visible, texte, couleur = self.badge()
+                self.assertEqual((visible, texte, couleur) if visible else visible, attendu.get(etat, False))
+
+
+    def test_phrase_du_mode_jeu_jamais_hors_du_bandeau(self):
+        """UI-m7 : à 800×600, la phrase du mode jeu reste dans le bandeau ; trop longue pour la ligne, elle passe à la
+        ligne au lieu de déborder. Le badge d'état, lui, garde sa pilule d'une ligne."""
+        fenetre = self.f.racines[0]
+        fenetre.setProperty("width", 800)
+        fenetre.setProperty("height", 600)
+        interrompu = "Mode jeu interrompu : le bureau sera remis comme avant à la reprise du service."
+        for phrase in (interrompu, interrompu + " " + interrompu):
+            with self.subTest(phrase=phrase):
+                self.f.pont._etat = dict(self.f.pont.etat, modejeu={"etat": "interrompu", "phrase": phrase})
+                self.f.pont.etatChange.emit()
+                attendre(300)
+                b = self.f.objet("badge-modejeu")
+                self.assertEqual(b.property("texte"), phrase)
+                self.assertLessEqual(b.property("x") + b.property("width"), b.parentItem().property("width"))
+        etat = self.f.objet("badge-etat")
+        self.assertGreater(b.property("height"), etat.property("height"))         # plusieurs lignes, contre une
+        self.assertEqual(etat.property("radius"), etat.property("height") / 2)
+        b = etat = fenetre = None
+
+
+class AccueilSansModeJeu(Base):
+    def test_accueil_badge_mode_jeu(self):
+        """Fixture « accueil » : etat.json d'avant le mode jeu, aucun badge."""
+        self.assertFalse(self.f.objet("badge-modejeu").property("visible"))
 
 
 if __name__ == "__main__":

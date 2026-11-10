@@ -58,6 +58,17 @@ class Arguments(unittest.TestCase):
         self.assertEqual(a.onglet, "controles")
         self.assertEqual(lanceur.ONGLETS["sante"], "ongletSante")
 
+    def test_page_jeux_et_ses_onglets(self):
+        """Task 6 : la page Jeux, ses onglets gardés par ongletJeux, et l'aide qui les nomme."""
+        a = lanceur._arguments(["--page", "jeux", "--onglet", "gels"])
+        self.assertEqual((a.page, a.onglet), ("jeux", "gels"))
+        self.assertEqual(lanceur.ONGLETS["jeux"], "ongletJeux")
+        self.assertIn("jeux", lanceur.PAGES)
+        with contextlib.redirect_stdout(io.StringIO()) as aide, self.assertRaises(SystemExit):
+            lanceur._arguments(["--help"])
+        for mot in ("jeux", "bibliotheques", "menage", "modejeu", "gels"):
+            self.assertIn(mot, aide.getvalue())
+
     def test_onglet_d_une_page_sans_onglets_refuse(self):
         with contextlib.redirect_stderr(io.StringIO()) as erreur, self.assertRaises(SystemExit):
             lanceur._arguments(["--onglet", "ensemble"])          # page accueil par défaut

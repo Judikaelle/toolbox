@@ -68,7 +68,7 @@
     "sante": null
    },
    {
-    "modele": "NVMe Exemple SSD with Heatsink 2TB",
+    "modele": "NVMe Exemple Z1 with Radiateur 2TB",
     "bus": "nvme",
     "peripherique": "/dev/nvme0n1",
     "sante": {
@@ -321,7 +321,7 @@
   },
   "gels": {
    "nombre": 9,
-   "dernier": "20260921-194442-GEL-JeuDeCourse.ex.txt"
+   "dernier": "20260921-203718-GEL-JeuDeCourse.ex.txt"
   },
   "ollama": {
    "actif": false,

@@ -5,7 +5,7 @@ import org.kde.kirigami as Kirigami
 import "."
 
 // Onglet GPU et jeux de la santé (Task 19) : la carte graphique (température, consommation, VRAM), Ollama (avec
-// « Arrêter Ollama ») et les gels de jeu enregistrés.
+// « Arrêter Ollama ») et le compte des gels de jeu capturés, dont le détail vit dans la page Jeux (v2b, D16).
 ColumnLayout {
     id: onglet
 
@@ -71,23 +71,35 @@ ColumnLayout {
                 onClicked: pont.arreterOllama()
             }
         }
+        // Les gels : leur compte et le même badge qu'avant ; la liste, ouvrable, est dans Jeux (onglet Gels).
         RowLayout {
-            readonly property var gels: onglet.page.sante.gels ?? null
-            readonly property int nombreGels: gels ? gels.nombre : 0
+            id: gels
+
+            readonly property int nombre: onglet.page.sante.gels?.nombre ?? 0
 
             Layout.fillWidth: true
             spacing: Style.espace(3)
 
             Badge {
-                texte: parent.nombreGels === 0 ? "Aucun gel" : parent.nombreGels + (parent.nombreGels > 1 ? " gels" : " gel")
-                etat: parent.nombreGels === 0 ? "ok" : "attention"
+                objectName: "gels-sante-badge"
+                texte: gels.nombre === 0 ? "Aucun gel" : gels.nombre + (gels.nombre > 1 ? " gels" : " gel")
+                etat: gels.nombre === 0 ? "ok" : "attention"
             }
             Controls.Label {
+                objectName: "gels-sante"
                 Layout.fillWidth: true
-                text: parent.nombreGels === 0 ? "Aucun gel de jeu enregistré."
-                      : parent.nombreGels + (parent.nombreGels > 1 ? " gels de jeu enregistrés" : " gel de jeu enregistré")
-                        + (onglet.page.dateDuGel(parent.gels.dernier) !== "" ? ", le dernier le " + onglet.page.dateDuGel(parent.gels.dernier) + "." : ".")
+                text: gels.nombre === 0 ? "Aucune capture de gel"
+                      : gels.nombre + (gels.nombre > 1 ? " captures de gel" : " capture de gel")
                 wrapMode: Text.WordWrap
+            }
+            Bouton {
+                objectName: "voir-gels"
+                text: "Voir dans Jeux"
+                icon.name: "go-next-symbolic"
+                onClicked: {
+                    applicationWindow().ongletJeux = "gels";
+                    applicationWindow().page = "jeux";
+                }
             }
         }
     }

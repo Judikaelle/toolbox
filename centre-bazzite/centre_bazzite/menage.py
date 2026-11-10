@@ -16,7 +16,8 @@ import urllib.parse
 from datetime import datetime
 from pathlib import Path
 
-from . import commun, sante
+from . import commun, config, sante
+from . import steam as lecteur_steam
 from .majapps.outils import version_ge
 
 # Ce que les programmes recréent seuls. Playwright n'y est pas : ses navigateurs ne reviennent qu'avec
@@ -37,7 +38,8 @@ CONFIGS_LANCEURS = ("~/.config/heroic/config.json", "~/.config/heroic/GamesConfi
                     "~/.config/lutris/**/*.yml", "~/.local/share/lutris/*.yml", "~/.local/share/lutris/games/*.yml",
                     "~/.var/app/net.lutris.Lutris/config/lutris/**/*.yml",
                     "~/.var/app/net.lutris.Lutris/data/lutris/*.yml",
-                    "~/.var/app/net.lutris.Lutris/data/lutris/games/*.yml")
+                    "~/.var/app/net.lutris.Lutris/data/lutris/games/*.yml",
+                    "~/.local/share/lutris/runners/*.yml", "~/.var/app/net.lutris.Lutris/data/lutris/runners/*.yml")
 PROCESSUS_STEAM = ("steam", "steamwebhelper")
 COMMANDE_JOURNAL = "sudo journalctl --vacuum-size=500M"
 JOURNAL_MIN = 1024 ** 3                 # même seuil que le point menage:journal
@@ -56,6 +58,8 @@ TEXTES = {
     # Ruling V11 : seules les refs montrées, et seulement si elles sont toujours inutilisées.
     "runtimes": ("Runtimes Flatpak inutilisés",
                  "Désinstallés : seulement ceux listés ici, s'ils sont toujours inutilisés.", "commande"),
+    "shaders": ("Caches de shaders sans jeu installé",
+                "Supprimés définitivement : Steam les recrée si tu réinstalles le jeu.", "supprimer"),
     "proton": ("Versions de Proton inutilisées", "Supprimées définitivement ; ProtonPlus peut les réinstaller.",
                "supprimer"),
     "journal": ("Journal système",
@@ -66,9 +70,13 @@ LIEN, HORS, MODIFIE, UTILISE, DISPARU = (
     "lien symbolique", "hors de son dossier", "modifié depuis", "utilisé maintenant", "disparu")
 SAUVEGARDE, IMPOSSIBLE = "sauvegarde de jeu probable", "suppression impossible"
 NON_VERIFIABLE, NOM_ILLISIBLE = "non vérifiable", "nom illisible"
+STEAM_INCERTAIN = ("Steam : la liste des jeux installés n'est pas lisible (libraryfolders.vdf ou steamapps) : aucun "
+                   "cache de shaders n'est proposé.")
 JEU = "Un jeu tourne : ménage reporté."
 MAJ = "Une mise à jour est en cours : ménage reporté."
 STEAM = "Steam est ouvert : ferme-le pour retirer des versions de Proton."
+STEAM_SHADERS = "Steam est ouvert : ferme-le pour supprimer des caches de shaders."
+IDS_JEUX = ("shaders", "proton")        # ce que montre la page Jeux (la page Stockage les montre aussi)
 CHANGEE = "La liste a changé : rien n'a été fait."
 INCONNUE = "Recommandation inconnue."
 A_LA_MAIN = "Cette recommandation se fait à la main : copie la commande et lance-la dans un terminal."
@@ -77,7 +85,6 @@ REF_FLATPAK = re.compile(r"^[\w.-]+/[\w.-]+/[\w.-]+$")
 LIGNE_NUMEROTEE = re.compile(r"^\s*\d+\.\s+(.*)$")
 INUTILISES = ["env", "LC_ALL=C", "flatpak", "uninstall", "--unused"]
 LISTE_RUNTIMES = ["env", "LC_ALL=C", "flatpak", "list", "--runtime", "--columns=ref,installation,size"]
-JETON_VDF = re.compile(r'"((?:[^"\\]|\\.)*)"|([{}])|//[^\n]*')
 
 
 # --- La liste montrée ---
@@ -134,12 +141,14 @@ def maj_en_cours(run=commun.run):
 
 
 def steam_ouvert(proc=Path("/proc")):
-    """Le nom d'un processus du client Steam qui tourne, ou None. Steam n'écrit config.vdf qu'à certains moments."""
+    """Le nom d'un processus du client Steam qui tourne, ou None. Steam n'écrit config.vdf qu'à certains moments.
+    `comm` est lu en octets (coupé à 15 octets, parfois au milieu d'un caractère) : un nom illisible ne fait jamais
+    lever (RF-m2, comme W7)."""
     for p in Path(proc).iterdir():
         if p.name.isdigit():
             try:
-                nom = (p / "comm").read_text().strip()
-            except OSError:
+                nom = (p / "comm").read_bytes().decode("utf-8", errors="replace").strip()
+            except (OSError, ValueError):
                 continue
             if nom in PROCESSUS_STEAM:
                 return nom
@@ -241,29 +250,6 @@ def _reco(id_, elements, a_copier=None, remarque=None):
 
 # --- Steam : versions de Proton ---
 
-def _vdf(texte):
-    """Un fichier VDF de Steam en dictionnaires imbriqués (une clé en double garde sa dernière valeur)."""
-    pile, cle = [{}], None
-    for m in JETON_VDF.finditer(texte or ""):
-        chaine, accolade = m.group(1), m.group(2)
-        if chaine is not None:
-            if cle is None:
-                cle = chaine
-            else:
-                pile[-1][cle], cle = chaine, None
-        elif accolade == "{":
-            bloc = {}
-            if cle is not None:
-                pile[-1][cle] = bloc
-            pile.append(bloc)
-            cle = None
-        elif accolade == "}":
-            if len(pile) > 1:
-                pile.pop()
-            cle = None
-    return pile[0]
-
-
 def _bloc(d, cle):
     """Le premier bloc nommé `cle` (sans tenir compte de la casse), à n'importe quelle profondeur."""
     for k, v in d.items():
@@ -278,7 +264,7 @@ def _bloc(d, cle):
 
 def _outils_utilises(config_vdf):
     """Les noms d'outils de CompatToolMapping (config.vdf), ou None si le bloc est introuvable."""
-    bloc = _bloc(_vdf(config_vdf), "CompatToolMapping")
+    bloc = _bloc(lecteur_steam.lire_vdf(config_vdf), "CompatToolMapping")
     if bloc is None:
         return None
     return {v["name"] for v in bloc.values() if isinstance(v, dict) and v.get("name")}
@@ -291,7 +277,7 @@ def _noms_internes(dossier):
         texte = (Path(dossier) / "compatibilitytool.vdf").read_text(encoding="utf-8", errors="replace")
     except OSError:
         return set()
-    return set(_bloc(_vdf(texte), "compat_tools") or {})
+    return set(_bloc(lecteur_steam.lire_vdf(texte), "compat_tools") or {})
 
 
 def proton_inutilises(dossier, config_vdf):
@@ -346,6 +332,55 @@ def _protons(home):
     permis = {_racine(home, OUTILS_PROTON)}
     return [p for p in proton_inutilises(_chemin(home, OUTILS_PROTON), config)
             if _ecart(p, permis) is None and not _cites_ailleurs(p, reglages)]
+
+
+# --- Steam : caches de shaders sans jeu installé ---
+
+def _appid_decimal(nom):
+    """L'appid d'un nom de dossier de shadercache (décimal canonique, avant APPID_MAX), ou None : les raccourcis
+    non-Steam et les noms inhabituels ne sont jamais des cibles."""
+    if not re.fullmatch(r"[1-9][0-9]{0,9}", nom) or int(nom) >= lecteur_steam.APPID_MAX:
+        return None
+    return nom
+
+
+def _bibliotheques_steam(home, bibliotheques):
+    """Les bibliothèques Steam à lire : celles données, sinon celles de Steam et de la configuration (lues à l'appel,
+    les racines de Steam résolues contre `home`)."""
+    if bibliotheques is not None:
+        return [Path(b) for b in bibliotheques]
+    return lecteur_steam.bibliotheques(home, en_plus=config.jeux()["steam"])[0]
+
+
+def _shaders(home, bibliotheques):
+    """Les caches de shaders (steamapps/shadercache/<appid>) qu'aucun jeu ne justifie : D3. Un appid est installé s'il a un
+    appmanifest (.tmp compris) ou un dossier downloading dans une bibliothèque, ou s'il figure dans libraryfolders.vdf
+    (un disque débranché garde ses jeux). Un raccourci non-Steam (appid >= 2^31) n'est jamais proposé. Un parcours
+    incomplet écarte l'élément. Si la liste des jeux installés n'est pas certaine (libraryfolders.vdf manquant, illisible
+    ou coupé, steamapps illisible), rien n'est proposé et la remarque le dit (Ruling W5)."""
+    installes = lecteur_steam.appids_installes(bibliotheques, home=home)
+    if installes is None:
+        return _reco("shaders", [], remarque=STEAM_INCERTAIN)
+    elements, douteux = [], 0
+    for bib in bibliotheques:
+        cache = Path(bib) / "steamapps" / "shadercache"
+        permis = {Path(os.path.realpath(bib)) / "steamapps" / "shadercache"}
+        try:
+            entrees = sorted(os.listdir(cache)) if cache.is_dir() else []
+        except OSError:
+            douteux += 1
+            continue
+        for nom in entrees:
+            appid = _appid_decimal(nom)
+            chemin = cache / nom
+            if appid is None or appid in installes or _ecart(chemin, permis) is not None or not chemin.is_dir():
+                continue
+            octets, _recent, _sauvegarde, complet = _parcourir(chemin)
+            if not complet:
+                douteux += 1
+            else:
+                elements.append(_element(chemin, f"Jeu Steam {appid} ({bib})", octets))
+    return _reco("shaders", elements, remarque=_non_verifiables(douteux))
 
 
 # --- Flatpak : runtimes inutilisés ---
@@ -519,11 +554,12 @@ def _journal(controles):
     return _reco("journal", [_element("journal", "Journal système", int(journal) - JOURNAL_GARDE)], COMMANDE_JOURNAL)
 
 
-def recommandations(*, home=None, maintenant=None, run=commun.run, controles=None, steam=None):
+def recommandations(*, home=None, maintenant=None, run=commun.run, controles=None, steam=None, bibliotheques=None):
     """Les recommandations qui ont des éléments, dans l'ordre de la page. Ne fait que lire : `gio trash --list`,
     `flatpak uninstall --unused` répondu « n » et `flatpak list`. `controles` : controles.json (lu s'il est omis).
-    `steam()` dit si Steam tourne (alors les versions de Proton ne sont pas proposées). Une recommandation en panne
-    est écrite sur stderr et n'empêche pas les autres."""
+    `steam()` dit si Steam tourne (alors les versions de Proton ne sont pas proposées ; les caches de shaders, eux, le
+    sont : c'est leur exécution qui attend la fermeture de Steam). `bibliotheques` : les bibliothèques Steam (par défaut,
+    relues à l'appel). Une recommandation en panne est écrite sur stderr et n'empêche pas les autres."""
     home = Path(home) if home is not None else Path.home()
     if controles is None:
         controles = sante.lire_controles() or {}
@@ -538,6 +574,7 @@ def recommandations(*, home=None, maintenant=None, run=commun.run, controles=Non
                ("corbeille", lambda: _reco("corbeille", _corbeille(run, home) or [])),
                ("telechargements", lambda: _telechargements(home, maintenant)),
                ("runtimes", lambda: _runtimes(run, controles)),
+               ("shaders", lambda: _shaders(home, _bibliotheques_steam(home, bibliotheques))),
                ("proton", proton),
                ("journal", lambda: _journal(controles)))
     res = []
@@ -552,6 +589,8 @@ def recommandations(*, home=None, maintenant=None, run=commun.run, controles=Non
             continue
         if reco and reco["elements"]:
             res.append(reco)
+        elif reco and reco["remarque"]:
+            print(f"ménage {id_} : {reco['remarque']}", file=sys.stderr)
     return res
 
 
@@ -698,6 +737,36 @@ def _executer_runtimes(cibles, res, run, **_):
         res["liberes"] += sum(inutilises[r]["octets"] for r in refs)
 
 
+def _executer_shaders(cibles, res, home, bibliotheques=None, **_):
+    """Chaque cible est revérifiée : les bibliothèques et les appids installés sont relus maintenant ; la cible est une
+    entrée directe de steamapps/shadercache (pas un lien), son nom est un appid décimal avant APPID_MAX, et aucun jeu
+    ne l'a installé depuis l'affichage."""
+    bibs = _bibliotheques_steam(home, bibliotheques)
+    installes = lecteur_steam.appids_installes(bibs, home=home)
+    if installes is None:                       # on ne sait plus quels jeux sont installés : rien n'est supprimé
+        for cible in cibles:
+            _ignorer(res, cible, NON_VERIFIABLE)
+        return
+    permis = {Path(os.path.realpath(b)) / "steamapps" / "shadercache" for b in bibs}
+    for cible in cibles:
+        raison = _ecart(cible, permis)
+        appid = _appid_decimal(Path(cible).name)
+        if raison is None and (appid is None or not Path(cible).is_dir()):
+            raison = HORS
+        if raison is None and appid in installes:
+            raison = UTILISE
+        if raison:
+            _ignorer(res, cible, raison)
+            continue
+        avant = _parcourir(cible)[0]
+        shutil.rmtree(cible, ignore_errors=True)        # refuse un lien à la racine, ne suit aucun lien dedans
+        res["liberes"] += max(0, avant - _parcourir(cible)[0])
+        if os.path.lexists(cible):
+            _ignorer(res, cible, IMPOSSIBLE)
+        else:
+            res["faits"].append(cible)
+
+
 def _executer_proton(cibles, res, home, **_):
     permis = {_racine(home, OUTILS_PROTON)}
     inutilises = {str(p) for p in _protons(home)}
@@ -720,14 +789,15 @@ def _executer_proton(cibles, res, home, **_):
 
 
 ACTIONS = {"caches": _executer_caches, "corbeille": _executer_corbeille, "telechargements": _executer_telechargements,
-           "runtimes": _executer_runtimes, "proton": _executer_proton}
+           "runtimes": _executer_runtimes, "shaders": _executer_shaders, "proton": _executer_proton}
 
 
 def executer(id_, recos, *, home=None, maintenant=None, run=commun.run, jeu=commun.jeu_en_cours, maj=None,
-             steam=None):
+             steam=None, bibliotheques=None):
     """Fait le ménage de la recommandation `id_` de `recos` (celles de stockage.json, telles que montrées) : seulement
     ses éléments, chacun revérifié. Rien n'est fait pendant un jeu (`jeu()`) ni une mise à jour (`maj()`, par défaut
-    maj_en_cours avec ce `run`) ; les versions de Proton attendent que Steam soit fermé (`steam()`). Une commande à
+    maj_en_cours avec ce `run`) ; les versions de Proton et les caches de shaders attendent que Steam soit fermé (`steam()`). `bibliotheques` : les
+    bibliothèques Steam des caches de shaders (par défaut, relues à l'appel). Une commande à
     copier n'est jamais lancée. Rend {"id", "liberes", "faits": [cible], "ignores": [{"cible", "raison"}],
     "erreur": str|None}."""
     res = {"id": id_, "liberes": 0, "faits": [], "ignores": [], "erreur": None}
@@ -747,6 +817,9 @@ def executer(id_, recos, *, home=None, maintenant=None, run=commun.run, jeu=comm
     if id_ == "proton" and (steam or steam_ouvert)():
         res["erreur"] = STEAM
         return res
+    if id_ == "shaders" and (steam or steam_ouvert)():
+        res["erreur"] = STEAM_SHADERS
+        return res
     montres = [e for e in reco.get("elements") or [] if isinstance(e, dict) and e.get("cible")]
     cibles = []
     for cible in cibles_de(reco):
@@ -758,5 +831,5 @@ def executer(id_, recos, *, home=None, maintenant=None, run=commun.run, jeu=comm
         res["erreur"] = "La corbeille montrée contient un nom illisible : rien n'a été vidé."
         return res
     ACTIONS[id_](cibles, res, home=Path(home) if home is not None else Path.home(), maintenant=maintenant,
-                 run=run, montres=montres)
+                 run=run, montres=montres, bibliotheques=bibliotheques)
     return res

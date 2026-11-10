@@ -4,7 +4,7 @@
     {
       "id": "nvme0n1",
       "titre": "Disque interne (NVMe 2 To)",
-      "modele": "NVMe Exemple SSD with Heatsink 2TB",
+      "modele": "NVMe Exemple Z1 with Radiateur 2TB",
       "interne": true,
       "volumes": [
         {

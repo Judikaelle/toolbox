@@ -1,10 +1,15 @@
 """Les tests ne lisent jamais la configuration locale (~/.config/health-hub/config.toml) : la leur est
 echantillons/config.toml, ou celle que `configuration()` écrit le temps d'un bloc."""
 import contextlib
+import os
 import tempfile
 from pathlib import Path
 
-from centre_bazzite import config
+# Filet D-Bus (mode jeu), posé avant tout import de Qt ou de dbus : aucun test ne joint le vrai bus de session ni le
+# bus système (Ne pas déranger, profil d'énergie) ; une connexion oubliée échoue au lieu d'agir sur le bureau.
+os.environ["DBUS_SESSION_BUS_ADDRESS"] = os.environ["DBUS_SYSTEM_BUS_ADDRESS"] = "unix:path=/nonexistent/health-hub-tests"
+
+from centre_bazzite import config  # noqa: E402
 
 config.CHEMIN = Path(__file__).resolve().parent / "echantillons" / "config.toml"
 

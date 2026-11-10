@@ -1,0 +1,28 @@
+"libraryfolders"
+{
+	"0"
+	{
+		"path"		"@BIB1@"
+		"label"		""
+		"contentid"		"0"
+		"totalsize"		"0"
+		"apps"
+		{
+			"101"		"1073741824"
+			"202"		"2147483648"
+			"228980"		"1048576"
+		}
+	}
+	"1"
+	{
+		"path"		"@BIB2@"
+		"label"		"Données"
+		"contentid"		"0"
+		"totalsize"		"0"
+		"apps"
+		{
+			"303"		"536870912"
+			"606"		"268435456"
+		}
+	}
+}

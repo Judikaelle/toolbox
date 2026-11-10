@@ -39,6 +39,7 @@ Controls.ScrollView {
 
     readonly property real marge: Style.margePage
     readonly property var etatGlobal: Style.etatsGlobaux[etat.couleur] ?? null
+    readonly property string modeJeu: etat.modejeu?.etat ?? ""
     // Le volume le plus serré (plus faible part d'espace libre) : c'est lui que la tuile « Espace libre » montre.
     readonly property var volumeSerre: (sante.volumes ?? []).reduce(
         (pire, v) => v.total_go > 0 && (pire === null || v.libre_go / v.total_go < pire.libre_go / pire.total_go) ? v : pire, null)
@@ -95,7 +96,7 @@ Controls.ScrollView {
         }
         return "";
     }
-    // « Marque SSD X9 PRO with Heatsink 2TB » → « Marque X9 PRO ».
+    // « Marque SSD X9 PRO 2TB » → « Marque X9 PRO » (et sans un éventuel « with heatsink … »).
     function nomCourt(modele) {
         return String(modele ?? "").replace(/\s+with heatsink.*$/i, "").replace(/\bSSD\b/g, "")
                                    .replace(/\s+\d+\s*[TG]B$/i, "").replace(/\s+/g, " ").trim();
@@ -181,14 +182,29 @@ Controls.ScrollView {
         Carte {
             id: bandeauEtat
 
+            objectName: "bandeau-accueil"
             Layout.fillWidth: true
             halo: true
 
-            Badge {
-                objectName: "badge-etat"
-                visible: accueil.etatGlobal !== null
-                texte: accueil.etatGlobal?.mot ?? ""
-                etat: accueil.etatGlobal?.badge ?? "neutre"
+            Flow {
+                Layout.fillWidth: true
+                spacing: Style.espace(2)
+
+                Badge {
+                    objectName: "badge-etat"
+                    visible: accueil.etatGlobal !== null
+                    texte: accueil.etatGlobal?.mot ?? ""
+                    etat: accueil.etatGlobal?.badge ?? "neutre"
+                }
+                // Le mode jeu, seulement quand il agit ou qu'il attend de remettre le bureau comme avant (Task 6).
+                Badge {
+                    objectName: "badge-modejeu"
+                    // UI-m7 : la phrase entière, à la ligne plutôt que hors du bandeau.
+                    largeurMax: parent.width
+                    visible: accueil.modeJeu === "actif" || accueil.modeJeu === "interrompu"
+                    texte: accueil.etat.modejeu?.phrase ?? ""
+                    etat: accueil.modeJeu === "interrompu" ? "attention" : "info"
+                }
             }
             Kirigami.Heading {
                 Layout.fillWidth: true

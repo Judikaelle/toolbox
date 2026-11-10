@@ -8,6 +8,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
+from . import steam
+
 ETAT = Path.home() / ".local" / "state" / "centre-bazzite"
 CACHE = Path.home() / ".cache" / "centre-bazzite"
 
@@ -99,13 +101,81 @@ def est_jeu(comm, environ):
     return True
 
 
-def jeu_en_cours():
-    for p in Path("/proc").iterdir():
+# RF-I1 : les processus qui portent SteamGameId sans être le jeu (lanceur de Steam, conteneur, services de Wine). Ils
+# ne servent qu'à choisir le nom montré : la présence d'un jeu reste la règle de est_jeu.
+ENVELOPPES = frozenset(("reaper", "pv-adverb", "srt-bwrap", "bwrap", "python3", "umu-run", "proton", "steam.exe",
+                        "wineserver", "explorer.exe", "services.exe", "winedevice.exe", "plugplay.exe", "svchost.exe",
+                        "rpcss.exe"))
+
+
+def _enveloppe(nom):
+    nom = nom.lower()
+    return nom in ENVELOPPES or nom.startswith("pressure-vessel")
+
+
+def _temps_processeur(dossier):
+    """utime + stime de <pid>/stat (champs 14 et 15), en tops d'horloge ; le nom entre parenthèses peut contenir des
+    espaces et des parenthèses, d'où la dernière « ) »."""
+    stat = (Path(dossier) / "stat").read_bytes()
+    champs = stat[stat.rindex(b")") + 1:].split()
+    return int(champs[11]) + int(champs[12])
+
+
+def _nom_par_processeur(proc):
+    """Parmi les processus de jeu (est_jeu), hors enveloppes, le nom de celui qui a pris le plus de temps processeur
+    (comme freeze-watch), ou None."""
+    meilleur, temps_max = None, -1
+    for p in Path(proc).iterdir():
         if not p.name.isdigit():
             continue
         try:
-            if est_jeu((p / "comm").read_text(), (p / "environ").read_bytes()):
-                return (p / "comm").read_text().strip()
-        except OSError:
+            comm = (p / "comm").read_bytes().decode("utf-8", errors="replace")
+            nom = comm.strip()
+            if not nom or _enveloppe(nom) or not est_jeu(comm, (p / "environ").read_bytes()):
+                continue
+            temps = _temps_processeur(p)
+        except (OSError, ValueError, IndexError):
             continue
+        if temps > temps_max:
+            meilleur, temps_max = nom, temps
+    return meilleur
+
+
+def _nommer(proc, environ, premier, home):
+    """RF-I1 : le nom à montrer pour un jeu déjà détecté : celui de l'appmanifest de SteamGameId, sinon le processus de
+    jeu le plus gourmand hors enveloppes, sinon `premier` (le comportement d'avant). Une erreur à une étape passe à la
+    suivante : jamais d'exception (seules les Exception sont attrapées : le SystemExit du SIGTERM du service passe)."""
+    try:
+        m = re.search(rb"(?:^|\0)SteamGameId=([^\0]*)", environ)
+        nom = steam.nom_du_jeu(m.group(1).decode("ascii"), home) if m else None
+        if nom:
+            return nom
+    except Exception:
+        pass
+    try:
+        nom = _nom_par_processeur(proc)
+        if nom:
+            return nom
+    except Exception:
+        pass
+    return premier
+
+
+def jeu_en_cours(proc=Path("/proc"), *, home=None):
+    """Le nom du jeu qui tourne, ou None. La présence est celle du premier processus de jeu (est_jeu) : elle décide du
+    mode jeu et ne dépend jamais de la recherche du nom (RF-I1, voir _nommer ; `home` : où chercher Steam, le vrai
+    home par défaut). `comm` est lu en octets : le noyau le coupe à 15 octets, parfois au milieu d'un caractère, et un
+    nom illisible ne doit jamais faire lever la détection (W7)."""
+    for p in Path(proc).iterdir():
+        if not p.name.isdigit():
+            continue
+        try:
+            comm = (p / "comm").read_bytes().decode("utf-8", errors="replace")
+            environ = (p / "environ").read_bytes()
+            if not est_jeu(comm, environ):
+                continue
+        except (OSError, ValueError):
+            continue
+        premier = comm.strip()
+        return _nommer(proc, environ, premier, home) if premier else premier
     return None

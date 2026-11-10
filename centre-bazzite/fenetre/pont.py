@@ -10,6 +10,7 @@ from PySide6.QtGui import QGuiApplication
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))     # le moteur : centre_bazzite.taches
 from centre_bazzite import menage as moteur_menage  # noqa: E402
+from centre_bazzite import modejeu as moteur_modejeu  # noqa: E402
 from centre_bazzite import taches as moteur_taches  # noqa: E402
 
 PROGRAMME = "centre-bazzite"
@@ -20,6 +21,11 @@ TOURS_APRES_LANCEMENT = 3
 SESSIONS_MAX = 30
 TACHES_MAX = 20
 RECENTE = timedelta(hours=24)
+# UI-m2 : « Remettre le bureau comme avant » lance `modejeu restaurer`, qui écrit cette tâche du panneau Activité ; le
+# bouton attend sa fin (au plus ATTENTE_RESTAURATION_MS) et montre sa phrase.
+RESTAURATION = "modejeu:restaurer"
+ATTENTE_RESTAURATION_MS = 120000
+SANS_NOUVELLES = "Pas de nouvelles de la remise du bureau : regarde le panneau Activité."
 # Les étapes d'une session « Tout mettre à jour », dans l'ordre du moteur (copie de session.ETAPES + extinction).
 ORDRE_ETAPES = ("uupd", "maj-apps", "notes", "resume", "etat", "extinction")
 NOMS_ETAPES = {"uupd": "Mise à jour du système", "maj-apps": "Mise à jour des outils",
@@ -80,6 +86,8 @@ class Pont(QObject):
     etatChange = Signal()
     tachesChange = Signal()
     stockageChange = Signal()
+    jeuxChange = Signal()
+    restaurationChange = Signal()
 
     def __init__(self, chemin=ETAT_JSON, intervalle_ms=INTERVALLE_SUIVI_MS, parent=None, presse_papiers=None,
                  etat_force=False):
@@ -90,6 +98,7 @@ class Pont(QObject):
         self._etat = {}
         self._taches = []
         self._stockage = {}
+        self._jeux = {}
         self._presse_papiers = presse_papiers
         self._tours_restants = 0
         self._veilleur = QFileSystemWatcher(self)
@@ -98,6 +107,14 @@ class Pont(QObject):
         self._minuteur = QTimer(self)
         self._minuteur.setInterval(intervalle_ms)
         self._minuteur.timeout.connect(self._suivre)
+        # UI-m2 : la remise du bureau lancée par la fenêtre, une seule à la fois.
+        self._en_restauration = False
+        self._tache_avant = None            # la tâche « modejeu:restaurer » telle qu'elle était au clic
+        self._retour_restauration = ""      # la phrase de la dernière remise finie
+        self._delai_restauration = QTimer(self)
+        self._delai_restauration.setSingleShot(True)
+        self._delai_restauration.setInterval(ATTENTE_RESTAURATION_MS)
+        self._delai_restauration.timeout.connect(self._sans_nouvelles)
         try:
             self._chemin.parent.mkdir(parents=True, exist_ok=True)
         except OSError:
@@ -139,9 +156,25 @@ class Pont(QObject):
 
     stockage = Property("QVariantMap", _lire_stockage, notify=stockageChange)
 
+    def _lire_jeux(self):
+        return self._jeux
+
+    jeux = Property("QVariantMap", _lire_jeux, notify=jeuxChange)
+
+    def _lire_en_restauration(self):
+        return self._en_restauration
+
+    restaurationEnCours = Property(bool, _lire_en_restauration, notify=restaurationChange)
+
+    def _lire_retour_restauration(self):
+        return self._retour_restauration
+
+    retourRestauration = Property(str, _lire_retour_restauration, notify=restaurationChange)
+
     @Slot()
     def recharger(self):
-        """Relit etat.json, stockage.json et les tâches ; un fichier absent ou illisible garde l'état précédent."""
+        """Relit etat.json, stockage.json, jeux.json et les tâches ; un fichier absent ou illisible garde l'état
+        précédent."""
         self._surveiller()
         try:
             donnees = json.loads(self._chemin.read_text(encoding="utf-8"))
@@ -157,10 +190,19 @@ class Pont(QObject):
         if isinstance(stock, dict) and stock != self._stockage:
             self._stockage = stock
             self.stockageChange.emit()
+        try:
+            jeux = json.loads((self._chemin.parent / "jeux.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            jeux = None
+        if isinstance(jeux, dict) and jeux != self._jeux:
+            self._jeux = jeux
+            self.jeuxChange.emit()
         taches = self._calculer_taches()
         if taches != self._taches:
             self._taches = taches
             self.tachesChange.emit()
+        self._suivre_restauration()
+        self._oublier_retour_si_partie()
         self._ajuster_suivi()
 
     def _surveiller(self):
@@ -192,15 +234,16 @@ class Pont(QObject):
         self.recharger()
 
     def _demarrer(self, programme, arguments):
-        """Point unique de lancement des commandes : rien ne part sur un état forcé."""
+        """Point unique de lancement des commandes : rien ne part sur un état forcé. Vrai si la commande est partie."""
         if self._etat_force:
-            return
+            return False
         ok, _pid = QProcess.startDetached(programme, [str(a) for a in arguments])
         if not ok:
             print(f"Impossible de lancer : {programme} {' '.join(map(str, arguments))}", file=sys.stderr)
+        return bool(ok)
 
     def _cli(self, *arguments):
-        self._demarrer(PROGRAMME, arguments)
+        return self._demarrer(PROGRAMME, arguments)
 
     def _suivre_un_moment(self):
         """Quelques rafraîchissements de l'état après une action, le temps qu'elle produise son effet."""
@@ -257,6 +300,96 @@ class Pont(QObject):
     def rafraichirStockage(self):
         """Ouverture de la page Stockage : relève les disques et leurs volumes (lecture seule)."""
         self._cli("stockage")
+
+    def _partie_en_cours(self):
+        """Un jeu vu par le dernier état, ou le mode jeu actif."""
+        modejeu = self._etat.get("modejeu")
+        return bool(self._etat.get("jeu")) or (isinstance(modejeu, dict) and modejeu.get("etat") == "actif")
+
+    @Slot()
+    def rafraichirJeux(self):
+        """Ouverture de la page Jeux : relève les bibliothèques (jeux.json), le stockage (le ménage des jeux vit dans
+        stockage.json) et l'état (le résumé du mode jeu). Lecture seule. Pendant une partie, seulement l'état (RF-m3) :
+        les relevés lourds attendent, comme ceux du relevé horaire (D10)."""
+        if not self._partie_en_cours():
+            self._cli("jeux")
+            self._cli("stockage")
+        self._cli("rafraichir", "--leger")
+
+    def _gels(self):
+        gels = self._jeux.get("gels")
+        return gels if isinstance(gels, dict) else {}
+
+    @Slot(str)
+    def ouvrirGel(self, fichier):
+        """« Ouvrir » d'une capture de gel : seulement un nom de fichier (sans « / ») de jeux.json, dans le dossier des
+        gels ; la capture s'ouvre avec l'application par défaut."""
+        gels = self._gels()
+        dossier = gels.get("dossier")
+        if not fichier or "/" in fichier or fichier in (".", "..") or not isinstance(dossier, str) or not dossier:
+            return
+        chemin = Path(dossier) / fichier
+        if any(isinstance(g, dict) and isinstance(g.get("fichier"), str) and Path(g["fichier"]) == chemin
+               for g in gels.get("liste") or []):
+            self._demarrer("xdg-open", [str(chemin)])
+
+    @Slot()
+    def ouvrirDossierGels(self):
+        """« Ouvrir le dossier » des captures de gel, s'il est connu (jeux.json)."""
+        dossier = self._gels().get("dossier")
+        if isinstance(dossier, str) and dossier:
+            self._demarrer("xdg-open", [dossier])
+
+    @Slot(str, bool)
+    def reglerModeJeu(self, cle, valeur):
+        """Un interrupteur du mode jeu : seulement une clé connue du moteur ; l'état suit quelques secondes."""
+        if cle not in moteur_modejeu.CLES:
+            return
+        self._cli("modejeu", "regler", cle, "oui" if valeur else "non")
+        self._suivre_un_moment()
+
+    @Slot()
+    def restaurerModeJeu(self):
+        """« Remettre le bureau comme avant » : `modejeu restaurer`, qui ne fait rien si le service tourne (P5). Une
+        seule à la fois (UI-m2) : elle est « en cours » jusqu'à la fin de la tâche que la CLI écrit, dont la phrase
+        devient le retour montré par la fenêtre."""
+        if self._en_restauration or not self._cli("modejeu", "restaurer"):
+            return
+        self._tache_avant = self._tache_restauration()
+        self._en_restauration, self._retour_restauration = True, ""
+        self.restaurationChange.emit()
+        self._delai_restauration.start()
+        self._suivre_un_moment()
+
+    def _tache_restauration(self):
+        return next((t for t in self._taches if isinstance(t, dict) and t.get("id") == RESTAURATION), None)
+
+    def _suivre_restauration(self):
+        """La remise lancée par la fenêtre est finie quand sa tâche, une autre que celle d'avant le clic (le pid du
+        processus y est noté), a un statut final."""
+        if not self._en_restauration:
+            return
+        t = self._tache_restauration()
+        if t is not None and t != self._tache_avant and t.get("statut") in moteur_taches.STATUTS_FINAUX:
+            self._fin_restauration(str(t.get("detail") or ""))
+
+    def _oublier_retour_si_partie(self):
+        """La phrase de la dernière remise ne reste pas affichée pendant la partie suivante."""
+        modejeu = self._etat.get("modejeu") if isinstance(self._etat, dict) else None
+        if (self._retour_restauration and not self._en_restauration and isinstance(modejeu, dict)
+                and modejeu.get("etat") == "actif"):
+            self._retour_restauration = ""
+            self.restaurationChange.emit()
+
+    def _sans_nouvelles(self):
+        """Aucune tâche finie à temps (CLI absente, plantée avant d'écrire sa tâche) : le bouton revient et le dit."""
+        if self._en_restauration:
+            self._fin_restauration(SANS_NOUVELLES)
+
+    def _fin_restauration(self, retour):
+        self._delai_restauration.stop()
+        self._en_restauration, self._tache_avant, self._retour_restauration = False, None, retour
+        self.restaurationChange.emit()
 
     def _volume_connu(self, chemin):
         return any(isinstance(v, dict) and v.get("chemin") == chemin and chemin

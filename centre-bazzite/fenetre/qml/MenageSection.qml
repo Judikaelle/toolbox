@@ -8,10 +8,14 @@ import "."
 // (vue d'ensemble de Stockage, Task 19). Rien ne part sans confirmation : le dialogue liste TOUS les éléments (liste
 // défilante) et leur total, puis un bouton destructeur ; la commande porte l'empreinte de la liste montrée, et le
 // moteur revérifie chaque élément au moment d'agir. Le journal se réduit à la main (commande à copier).
+// `ids` vide : toutes les recommandations (Stockage) ; sinon seulement celles-là, dans cet ordre (Jeux : shaders, proton).
 Carte {
     id: section
 
-    readonly property var recommandations: pont.stockage.recommandations ?? []
+    property var ids: []
+    readonly property var toutes: pont.stockage.recommandations ?? []
+    readonly property var recommandations: ids.length === 0 ? toutes
+        : ids.map(id => toutes.find(r => r.id === id)).filter(r => r !== undefined)
     property var ouverte: null          // la recommandation du dialogue, telle qu'elle était à l'ouverture
     property string copiee: ""          // id de la recommandation dont la commande vient d'être copiée
     property string changement: ""      // la liste a changé pendant la confirmation : on le dit

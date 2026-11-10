@@ -2,10 +2,12 @@
 import argparse
 import json
 import os
+import signal
 import sys
 from pathlib import Path
 
-from . import analyse, commun, etat, hebdo, inventaire, menage, notes, points, resume, sante, session, stockage, taches
+from . import analyse, commun, etat, hebdo, inventaire, jeux, menage, notes, points, resume, sante, session, stockage, taches
+from . import modejeu   # mode jeu (Task 5) ; bureau (dbus) n'est importé que par `modejeu service`
 
 BIN = Path(__file__).resolve().parent.parent / "bin" / "centre-bazzite"
 UNITE = "centre-bazzite-maj"
@@ -13,6 +15,20 @@ DEJA_EN_COURS = "Une mise à jour est déjà en cours."
 ANALYSE_DEJA_EN_COURS = "Une analyse est déjà en cours."
 CODE_JEU = 75       # comme maj-apps : reporté parce qu'un jeu tourne
 CONTROLES_HEURES = 20
+
+# --- Mode jeu (Task 5) ---
+# D10 : les commandes lourdes du relevé horaire, reportées pendant un jeu (HEALTH_HUB_RELEVE=1, réglage « taches »).
+LOURDES = ("releve", "controles", "stockage", "jeux", "analyser")
+RESTAURER = {"rien": "Aucune partie à restaurer.",
+             "service_actif": "Le service du mode jeu s'en occupe.",
+             "jeu_en_cours": "Un jeu tourne encore : restauration à la fin de la partie.",
+             "restaure": "Mode jeu : bureau remis comme avant.",
+             "redemarrage": "Le PC a redémarré depuis : rien à remettre.",
+             "inconnu": "État du service du mode jeu inconnu : rien n'est touché."}
+TITRE_RESTAURER = "Remettre le bureau comme avant"
+# statut de la tâche du panneau Activité : « fini » seulement quand le bureau est comme avant (ou rien à remettre)
+STATUT_RESTAURER = {"jeu_en_cours": "interrompu", "service_actif": "interrompu", "inconnu": "echec"}
+# --- fin mode jeu ---
 
 
 def _parser():
@@ -44,6 +60,7 @@ def _parser():
     c.add_argument("--si-perime", action="store_true",
                    help=f"seulement si les derniers contrôles ont plus de {CONTROLES_HEURES} h")
     sous.add_parser("stockage", help="relève les disques et leurs volumes (stockage.json)")
+    sous.add_parser("jeux", help="relève les bibliothèques de jeux, doublons, préfixes orphelins et gels (jeux.json)")
     c = sous.add_parser("analyser", help="analyse des volumes en arrière-plan avec LinStat (catégories, gros dossiers)")
     c.add_argument("chemins", nargs="*", help="volumes à analyser (par défaut : les volumes montés)")
     c.add_argument("--si-perime", action="store_true",
@@ -55,7 +72,7 @@ def _parser():
     c = sous.add_parser("_analyser", help=argparse.SUPPRESS)
     c.add_argument("chemins", nargs="+")
     c = sous.add_parser("menage", help="fait le ménage d'une recommandation de la page Stockage (après confirmation)")
-    c.add_argument("id", help="identifiant de la recommandation (caches, corbeille, telechargements, runtimes, proton)")
+    c.add_argument("id", help="identifiant de la recommandation (caches, corbeille, telechargements, runtimes, shaders, proton)")
     c.add_argument("--empreinte", required=True,
                    help="empreinte des éléments montrés par la fenêtre (cible, libellé, taille) : rien n'est fait "
                         "si la liste a changé depuis")
@@ -64,6 +81,15 @@ def _parser():
     g.add_argument("--report", action="store_true", help="affiche le dernier bilan sans le recalculer")
     g.add_argument("--json", action="store_true", help="recalcule et affiche le bilan en JSON")
     g.add_argument("--quiet", action="store_true", help="recalcule sans notifier")
+    # --- Mode jeu (Task 5) ---
+    c = sous.add_parser("modejeu", help="mode jeu automatique : état, service, réglages, restauration")
+    c.add_argument("action", nargs="?", default="etat", choices=("etat", "service", "regler", "restaurer"),
+                   help="etat (par défaut) ; service : la boucle de health-hub-modejeu ; regler CLE oui|non ; "
+                        "restaurer : remet le bureau comme avant si le service n'est plus là")
+    c.add_argument("arguments", nargs="*", help=f"pour regler : la clé ({', '.join(modejeu.CLES)}), puis oui ou non")
+    c.add_argument("--si-orphelin", action="store_true",
+                   help="restaurer seulement si le service du mode jeu ne tourne pas (c'est toujours vérifié)")
+    # --- fin mode jeu ---
     return p
 
 
@@ -222,11 +248,109 @@ def _menage(a, run, jeu):
     return 1 if res["erreur"] else 0
 
 
+# --- Mode jeu (Task 5) ---
+def _republier_etat(ecrire_leger):
+    try:
+        ecrire_leger()
+    except Exception as exc:
+        print(f"etat.json non republié : {exc}", file=sys.stderr)
+
+
+def _modejeu(a, *, run, jeu, ecrire_leger, bureau):
+    if a.action == "service":
+        if bureau is None:
+            from .bureau import BureauDBus as bureau
+        mode = modejeu.ModeJeu(bureau(), jeu=jeu, run=run, publier=ecrire_leger)
+        # D7 : un SIGTERM (fin de session, relance d'install.sh, extinction) devient un SystemExit qui passe par le
+        # `finally` : les maintiens tombent, la partie reste notée et la reprise décide. Seulement ici.
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+        try:
+            modejeu.servir(mode)
+        finally:
+            mode.suspendre()
+        return 0
+    if a.action == "regler":
+        if len(a.arguments) != 2:
+            print("Usage : centre-bazzite modejeu regler CLE oui|non", file=sys.stderr)
+            return 2
+        cle, valeur = a.arguments
+        if cle not in modejeu.CLES:
+            print(f"Réglage inconnu : {cle} ({', '.join(modejeu.CLES)}).", file=sys.stderr)
+            return 2
+        if valeur not in ("oui", "non"):
+            print(f"Valeur inconnue : {valeur} (oui ou non).", file=sys.stderr)
+            return 2
+        modejeu.regler(cle, valeur == "oui")
+        print(f"Mode jeu : {cle} = {valeur}.")
+        _republier_etat(ecrire_leger)
+        return 0
+    if a.action == "restaurer":
+        # UI-m2 : lancée par la fenêtre (sans --si-orphelin), la remise du bureau est une tâche du panneau Activité :
+        # la fenêtre y lit sa fin et sa phrase. Le relevé horaire (--si-orphelin) n'en crée pas.
+        id_tache = None
+        if not a.si_orphelin:
+            try:
+                id_tache = taches.debuter("modejeu", "restaurer", TITRE_RESTAURER)
+            except Exception as exc:    # disque plein : la remise du bureau passe avant sa tâche
+                print(f"Tâche du panneau Activité impossible à écrire ({type(exc).__name__}: {exc})",
+                      file=sys.stderr)
+        try:
+            resultat = modejeu.restaurer(si_orphelin=a.si_orphelin, run=run, jeu=jeu)
+        except Exception as exc:        # la tâche ne doit jamais rester « en cours »
+            if id_tache is None:
+                raise
+            message = f"La remise du bureau a échoué : {type(exc).__name__}: {exc}"
+            _terminer_tache(id_tache, "echec", message)
+            print(message, file=sys.stderr)
+            return 1
+        print(RESTAURER[resultat])
+        if resultat in ("restaure", "redemarrage"):        # W8-m8 : sinon rien n'a changé
+            _republier_etat(ecrire_leger)
+        if id_tache is not None:        # après etat.json : la fenêtre relit tout à la fin de la tâche
+            _terminer_tache(id_tache, STATUT_RESTAURER.get(resultat, "fini"), RESTAURER[resultat])
+        return 0
+    resume_ = modejeu.resume()          # etat (Task 6) : la phrase du résumé, puis celle de la dernière partie (P13)
+    print(resume_["phrase"])
+    if resume_["derniere"]:
+        print(resume_["derniere"]["phrase"])
+    return 0
+
+
+def _terminer_tache(id_tache, statut, detail):
+    """Finit la tâche de la remise du bureau ; un disque plein ne change pas l'issue de la remise."""
+    try:
+        taches.terminer(id_tache, statut, detail)
+    except Exception as exc:
+        print(f"Tâche du panneau Activité impossible à finir ({type(exc).__name__}: {exc})", file=sys.stderr)
+
+
+def _pause_du_releve(cmd, environ, jeu):
+    """D10 : le nom du jeu si cette commande du relevé horaire attend la fin de la partie, sinon None. Jamais hors du
+    relevé (fenêtre, terminal) ; des réglages illisibles ne reportent rien."""
+    if environ.get("HEALTH_HUB_RELEVE") != "1" or (cmd not in LOURDES and cmd != "rafraichir"):
+        return None
+    try:
+        return modejeu.taches_en_pause(jeu=jeu)
+    except Exception as exc:
+        print(f"Mode jeu : réglages illisibles, rien n'est reporté ({type(exc).__name__}: {exc})", file=sys.stderr)
+        return None
+# --- fin mode jeu ---
+
+
 def main(argv=None, *, run=commun.run, notes_pour=notes.notes_pour, resumer=resume.resumer,
-         ecrire_etat=etat.ecrire, ecrire_leger=None, jeu=commun.jeu_en_cours, volumes=sante.volumes):
+         ecrire_etat=etat.ecrire, ecrire_leger=None, jeu=commun.jeu_en_cours, volumes=sante.volumes,
+         ecrire_jeux=jeux.ecrire, bureau=None, environ=os.environ):
     ecrire_leger = ecrire_leger or session._ecrire_leger
     a = _parser().parse_args(argv)
     cmd = a.commande
+    # --- Mode jeu (Task 5) : relevé horaire pendant un jeu ---
+    en_pause = _pause_du_releve(cmd, environ, jeu)
+    if en_pause and cmd in LOURDES:
+        print(f"Mode jeu : {cmd} reportée pendant {en_pause}.")
+        return 0
+    if en_pause and cmd == "rafraichir":
+        a.leger = True
+    # --- fin mode jeu ---
     if cmd == "etat":
         chemin = commun.ETAT / "etat.json"
         if not chemin.exists():
@@ -298,6 +422,8 @@ def main(argv=None, *, run=commun.run, notes_pour=notes.notes_pour, resumer=resu
         ecrire_leger()
     elif cmd == "stockage":
         print(stockage.ecrire())
+    elif cmd == "jeux":
+        print(ecrire_jeux())
     elif cmd == "analyser":
         return _analyser(a, run, jeu, volumes)
     elif cmd == "_analyser":
@@ -306,6 +432,8 @@ def main(argv=None, *, run=commun.run, notes_pour=notes.notes_pour, resumer=resu
         return _menage(a, run, jeu)
     elif cmd == "bilan":
         return _bilan(a, ecrire_etat)
+    elif cmd == "modejeu":
+        return _modejeu(a, run=run, jeu=jeu, ecrire_leger=ecrire_leger, bureau=bureau)
     return 0
 
 

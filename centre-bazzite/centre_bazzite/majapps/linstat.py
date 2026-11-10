@@ -29,17 +29,19 @@ def mod_linstat(simulation):
     titre = "LinStat %s → %s" % (court_avant, court_apres)
     if simulation:
         return Resultat("linstat", A_FAIRE, titre, "")
+    _, notes = run(git + ["log", "--oneline", "%s..%s" % (court_avant, court_apres)], timeout=30)
+    notes = notes[:20000]
+    # Un install.sh tiers modifié n'est jamais exécuté sans relecture, et HEAD n'avance pas : le dépôt reste en
+    # retard, donc le rappel revient chaque nuit jusqu'à la relecture (la comparaison précède l'avance).
+    if run(git + ["diff", "--quiet", avant, apres, "--", "install.sh"], timeout=30)[0] != 0:
+        return Resultat("linstat", MANUEL, "LinStat : install.sh a changé — relis-le, puis lance git -C "
+                        "~/developer/linstat merge --ff-only @{u} et bash ~/developer/linstat/install.sh", "",
+                        court_avant, court_apres, notes)
     # Avance rapide jusqu'au commit vérifié, sans nouveau fetch (pas de `pull`) : l'install.sh exécuté plus bas est
     # exactement celui que `diff avant apres` a comparé (V48).
     code, sortie = run(git + ["merge", "--ff-only", apres], timeout=120)
     if code != 0:
         return Resultat("linstat", ECHEC, "LinStat : git merge --ff-only a échoué", sortie.strip()[-500:])
-    _, notes = run(git + ["log", "--oneline", "%s..%s" % (court_avant, court_apres)], timeout=30)
-    notes = notes[:20000]
-    # un install.sh tiers modifié n'est jamais exécuté sans relecture
-    if run(git + ["diff", "--quiet", avant, apres, "--", "install.sh"], timeout=30)[0] != 0:
-        return Resultat("linstat", MANUEL, "LinStat : install.sh a changé — relis-le puis lance "
-                        "bash ~/developer/linstat/install.sh", "", court_avant, court_apres, notes)
     code, sortie = run(["bash", "install.sh"], timeout=300, cwd=DEPOT)
     if code != 0:
         return Resultat("linstat", ECHEC, "LinStat : install.sh a échoué", sortie.strip()[-500:])

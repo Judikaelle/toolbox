@@ -1,0 +1,22 @@
+"AppState"
+{
+	"appid"		"@APPID@"
+	"Universe"		"1"
+	"name"		"@NOM@"
+	"StateFlags"		"4"
+	"installdir"		"@NOM@"
+	"LastUpdated"		"1790000000"
+	"LastPlayed"		"@PARTIE@"
+	"SizeOnDisk"		"@TAILLE@"
+	"StagingSize"		"0"
+	"buildid"		"1000"
+	"LastOwner"		"0"
+	"InstalledDepots"
+	{
+		"1001"
+		{
+			"manifest"		"1"
+			"size"		"1"
+		}
+	}
+}

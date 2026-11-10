@@ -70,6 +70,17 @@ systemctl --user daemon-reload
 systemctl --user enable --now centre-bazzite-releve.timer
 echo "minuteur : centre-bazzite-releve.timer actif"
 
+# Mode jeu automatique : un service de la session graphique. try-restart relance un service déjà actif, pour qu'il
+# prenne le nouveau code ; son SIGTERM le suspend sans rien perdre (la partie en cours reste notée, la reprise décide).
+# Il passe avant enable --now : à la première installation, le service ne démarre qu'une fois.
+# debut-modejeu
+cp -f "$ici/systemd/health-hub-modejeu.service" "$unites/"
+systemctl --user daemon-reload
+systemctl --user try-restart health-hub-modejeu.service
+systemctl --user enable --now health-hub-modejeu.service
+echo "mode jeu : health-hub-modejeu actif"
+# fin-modejeu
+
 # maj-apps : lanceur du paquet centre_bazzite.majapps, unités versionnées (le service
 # n'est jamais démarré ici : seul le minuteur l'est).
 ln -sfn "$ici/bin/maj-apps" "$bin/maj-apps"

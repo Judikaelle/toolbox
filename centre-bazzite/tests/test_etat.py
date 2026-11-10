@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from centre_bazzite import commun, etat, points
+from centre_bazzite import commun, etat, modejeu, points
 
 SANTE_OK = {"ssd": [], "volumes": [], "services_en_echec": [], "ollama": None,
             "erreurs_journal": [], "plantages": []}
@@ -341,6 +341,23 @@ class Construire(Base):
     def test_jeu_en_cours_dans_l_etat(self):
         self.assertIsNone(self.construire()["jeu"])
         self.assertEqual(self.construire(jeu=lambda: "Jeu Exemple")["jeu"], "Jeu Exemple")
+
+    def test_etat_contient_modejeu(self):
+        """Task 6 : le résumé du mode jeu, en complet comme en léger (D14) ; en panne, None."""
+        import inspect
+        self.assertIs(inspect.signature(etat.construire).parameters["modejeu"].default, modejeu.resume)
+        resume = {"etat": "pret", "phrase": "Mode jeu prêt : il s'active quand un jeu démarre."}
+        for complet in (True, False):
+            with self.subTest(complet=complet):
+                self.assertEqual(self.construire(complet=complet, modejeu=lambda: resume)["modejeu"], resume)
+
+        def panne():
+            raise ValueError("modejeu.json abîmé")
+        self.assertIsNone(self.construire(modejeu=panne)["modejeu"])
+
+    def test_modejeu_par_defaut_lu_dans_commun_etat(self):
+        """Sans injection : modejeu.json du dossier d'état (absent ici), donc le service ne tourne pas."""
+        self.assertEqual(self.construire()["modejeu"]["etat"], "arrete")
 
     def test_unite_active_donne_en_cours(self):
         e = self.construire(unite_active=lambda: "uupd.service")

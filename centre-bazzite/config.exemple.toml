@@ -72,8 +72,42 @@
 # phrase = "Ce disque ne sert plus qu'aux archives."
 # conseil = "Si elles existent déjà ailleurs, ce disque peut être effacé ou réaffecté."
 
+# --- Page Jeux : bibliothèques en plus ---
+# Health Hub lit seul les bibliothèques Steam (libraryfolders.vdf), Heroic et Lutris, sans lancer aucun lanceur. Ici :
+#   steam      : bibliothèques Steam en plus (dossier qui contient steamapps)
+#   emulateurs : un dossier de jeux par émulateur (jamais lu seul)
+#     nom        : le nom de la bibliothèque
+#     dossier    : chemin absolu ou en ~ ; chaque dossier ou fichier qu'il contient est un jeu
+#     extensions : facultatif, les fichiers retenus ; sans cette clé, tout compte sauf images, textes et journaux
+#                  (les dossiers comptent toujours)
+#
+# [jeux]
+# steam = ["/var/mnt/DONNEES/SteamLibrary"]
+#
+# [[jeux.emulateurs]]
+# nom = "Console"
+# dossier = "/var/mnt/DONNEES/Console"
+# extensions = [".iso", ".nsp"]
+
 # --- Résumé des notes de version (Ollama) ---
 # Qui lit les résumés : « Tu résumes des notes de version pour <contexte>. »
 #
 # [resume]
 # contexte = "l'utilisateur, sous Bazzite (KDE Plasma, Wayland)"
+
+# --- Mode jeu automatique ---
+# Pendant une partie (un jeu lancé par Steam, Heroic, Lutris ou umu), Health Hub libère la carte graphique et calme le
+# bureau ; tout revient comme avant à la fin de la partie, même après un plantage. Tout est activé par défaut ; les
+# interrupteurs de la page Jeux (onglet Mode jeu) l'emportent sur ces valeurs.
+#   actif           : l'interrupteur général du mode jeu
+#   ollama          : arrêter Ollama (mémoire vidéo rendue) ; il est relancé à la fin s'il tournait avant
+#   ne_pas_deranger : activer Ne pas déranger
+#   profil          : tenir le profil d'énergie « performance »
+#   taches          : reporter les relevés de Health Hub (analyses, contrôles, stockage)
+#
+# [modejeu]
+# actif = true
+# ollama = true
+# ne_pas_deranger = true
+# profil = true
+# taches = true

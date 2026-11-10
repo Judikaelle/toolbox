@@ -12,6 +12,7 @@ Carte {
     id: carte
 
     property string rubrique
+    property int lignesTitre: 0               // transmis à PointLigne : titres abrégés au-delà de ce nombre de lignes
     property var masques: []                  // mis en sourdine depuis l'ouverture (la sourdine arrive au relevé)
 
     readonly property bool majEnCours: !!pont.etat.en_cours
@@ -69,6 +70,7 @@ Carte {
                     Layout.topMargin: Style.espace(3)
                     Layout.bottomMargin: Style.espace(3)
                     point: rang.modelData
+                    lignesTitre: carte.lignesTitre
                     // Redémarrer pendant une mise à jour la couperait : le bouton attend la fin.
                     actionPermise: !(carte.estRedemarrage(rang.modelData) && carte.majEnCours)
                     onAgir: carte.agir(rang.modelData)

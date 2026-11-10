@@ -1,0 +1,14 @@
+[Unit]
+Description=Health Hub : mode jeu automatique
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=exec
+ExecStart=%h/.local/bin/centre-bazzite modejeu service
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=graphical-session.target

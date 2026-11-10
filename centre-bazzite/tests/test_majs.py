@@ -1,18 +1,22 @@
 """Page Mises à jour : chargée pour de vrai dans Main.qml (QT_QPA_PLATFORM=offscreen), avec des fixtures
 (etat.json + sessions/). Les éléments testés portent un objectName ; on lit leurs propriétés QML."""
+import json
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(ICI.parent / "fenetre"))
 
-from PySide6.QtCore import QElapsedTimer, QEventLoop, QThread, QUrl  # noqa: E402
+from PySide6.QtCore import QElapsedTimer, QEventLoop, QProcess, QThread, QTimer, QUrl  # noqa: E402
 from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
 
 import pont  # noqa: E402
 
-from tests.appli_qt import APP  # noqa: E402
+from tests.appli_qt import APP, arreter_pont  # noqa: E402
 ETATS = ICI / "echantillons" / "etats"
 
 
@@ -59,6 +63,7 @@ class Fenetre:
                 for o in self.objets(prefixe)}
 
     def fermer(self):
+        arreter_pont(self.pont)             # UI-m1 : le pont d'un test fini ne lance plus rien
         self.racines[0].close()
         self.moteur.deleteLater()
         self.pont.deleteLater()
@@ -125,6 +130,46 @@ class DetailDUneSession(Base):
         self.assertEqual(self.f.objets("vide-visite"), [])
 
 
+class TitreDuRedemarrage(unittest.TestCase):
+    """Task 9 : la colonne de droite est étroite, à côté de deux boutons ; le titre du redémarrage, long, ne dépasse pas
+    deux lignes à 1100 px (le reste est abrégé)."""
+
+    def setUp(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        dossier = Path(d.name) / "majs-redemarrage"
+        shutil.copytree(ETATS / "majs", dossier)
+        e = json.loads((dossier / "etat.json").read_text(encoding="utf-8"))
+        e["redemarrage"] = True
+        e["points"].append({
+            "id": "redemarrage:45.20261109", "gravite": "attention", "rubrique": "majs", "domaine": "systeme",
+            "titre": "Bazzite 45.20261109 attend un redémarrage pour finir de s'installer, avec ses nouveaux "
+                     "composants du système, du noyau et des pilotes graphiques, avant toute autre mise à jour",
+            "detail": "La mise à jour est installée mais ne sera active qu'après un redémarrage.", "mesure": 0.0,
+            "cran": 1.0, "action": {"libelle": "Redémarrer", "commande": ["systemctl", "reboot"]},
+            "en_sourdine": False})
+        e["compteurs"]["majs"] = e["compteurs"].get("majs", 0) + 1
+        (dossier / "etat.json").write_text(json.dumps(e, ensure_ascii=False), encoding="utf-8")
+        self.f = Fenetre(dossier)
+        self.addCleanup(self.f.fermer)
+        self.f.racines[0].setProperty("width", 1100)
+        self.f.racines[0].setProperty("height", 720)
+        attendre(300)
+
+    def test_titre_redemarrage_deux_lignes_au_plus(self):
+        ligne = self.f.objet("a-regarder-ligne-redemarrage:45.20261109")
+        self.assertIsNotNone(ligne, "ligne du redémarrage absente de la colonne de droite")
+        titres, a_voir = [], [ligne]
+        while a_voir:
+            x = a_voir.pop()
+            a_voir.extend(x.childItems())
+            if str(x.property("text") or "").startswith("Bazzite 45.2"):
+                titres.append(x)
+        self.assertEqual(len(titres), 1)
+        self.assertGreaterEqual(titres[0].property("lineCount"), 1)
+        self.assertLessEqual(titres[0].property("lineCount"), 2)
+
+
 class SansRien(Base):
     dossier = "vide"
 
@@ -133,6 +178,28 @@ class SansRien(Base):
                          ["Aucune mise à jour lancée depuis Health Hub pour l'instant."])
         self.assertEqual([o.property("texte") for o in self.f.objets("vide-visite")],
                          ["Rien de nouveau depuis ta dernière visite."])
+
+
+class FenetreFermee(unittest.TestCase):
+    def test_fermer_arrete_le_pont(self):
+        """UI-m1 : une mise à jour en cours fait tourner le suivi du pont (toutes les 5 s) dès l'ouverture. Une fenêtre
+        fermée l'arrête : le pont d'un test fini ne lance plus rien (deleteLater n'agit pas sans boucle d'événements, et
+        le faux startDetached d'un test suivant recevrait ses commandes)."""
+        appels = []
+
+        def faux(prog, args):
+            appels.append([prog] + list(args))
+            return True, 1
+        with mock.patch.object(QProcess, "startDetached", faux):
+            f = Fenetre("majs")
+            self.assertTrue(f.pont._minuteur.isActive())
+            f.fermer()
+            self.assertEqual([t for t in f.pont.findChildren(QTimer) if t.isActive()], [])
+            veilleur = f.pont._veilleur
+            self.assertEqual(veilleur.files() + veilleur.directories(), [])         # plus rien ne le réveille
+            f.pont._suivre()                    # réveillé quand même : rien ne part
+            f.pont.restaurerModeJeu()
+        self.assertEqual(appels, [])
 
 
 if __name__ == "__main__":

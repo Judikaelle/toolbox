@@ -340,6 +340,27 @@ PlasmoidItem {
                     etat: (root.majEnCours ? root.etats["en_cours"] : root.etatGlobal)?.badge ?? "neutre"
                 }
             }
+            // Le mode jeu (Task 6), aux mêmes conditions que dans la fenêtre : quand il agit, ou qu'il attend de remettre
+            // le bureau comme avant. La phrase vient telle quelle de etat.json.
+            RowLayout {
+                readonly property var modejeu: root.etat?.modejeu ?? null
+                readonly property bool interrompu: modejeu?.etat === "interrompu"
+
+                Layout.fillWidth: true
+                visible: modejeu !== null && (modejeu.etat === "actif" || interrompu)
+                spacing: Kirigami.Units.smallSpacing
+
+                Badge {
+                    Layout.alignment: Qt.AlignTop
+                    texte: parent.interrompu ? "Interrompu" : "Actif"
+                    etat: parent.interrompu ? "attention" : "info"
+                }
+                PlasmaComponents3.Label {
+                    Layout.fillWidth: true
+                    text: parent.modejeu?.phrase ?? ""
+                    wrapMode: Text.WordWrap
+                }
+            }
             PlasmaComponents3.Label {
                 Layout.fillWidth: true
                 text: root.etat ? root.texteNombre(root.etat.depuis_visite?.nombre)

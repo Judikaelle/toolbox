@@ -1,0 +1,8 @@
+{
+  "titleId": "EXEMPLE00000_00",
+  "localizedParameters": {
+    "defaultLanguage": "en-US",
+    "en-US": {"titleName": "Adventure game"},
+    "fr-FR": {"titleName": "Jeu d'aventure"}
+  }
+}

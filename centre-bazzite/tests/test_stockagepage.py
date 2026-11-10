@@ -69,7 +69,7 @@ class PageStockage(Base):
         self.assertIsNotNone(self.f.objet("page-stockage"))
         self.assertEqual(self.texte("stockage-disque-titre-nvme0n1"), "Disque interne (NVMe 2 To)")
         self.assertEqual(self.texte("stockage-disque-titre-sda"), "Disque externe (SSD USB)")
-        self.assertEqual(self.texte("stockage-disque-modele-nvme0n1"), "NVMe Exemple SSD with Heatsink 2TB")
+        self.assertEqual(self.texte("stockage-disque-modele-nvme0n1"), "NVMe Exemple Z1 with Radiateur 2TB")
         self.assertEqual(self.texte("stockage-disque-modele-sda"), "USB Exemple SSD")
 
     def test_volumes_sous_leur_disque(self):
@@ -580,6 +580,15 @@ class Menage(Base):
         attendre(100)
         self.assertFalse(self.f.objet("menage-liberer-caches").property("enabled"))
         self.assertTrue(self.f.objet("menage-liberer-proton").property("enabled"))
+
+
+class MenageAvecLesJeux(Base):
+    """Task 8, non-régression : MenageSection sans `ids` montre toutes les recommandations, celles des jeux comprises."""
+    dossier = "jeux"
+
+    def test_la_vue_d_ensemble_de_stockage_montre_toujours_tout(self):
+        lignes = [o.objectName() for o in sorted(self.f.objets("menage-ligne-"), key=lambda o: o.property("y"))]
+        self.assertEqual(lignes, ["menage-ligne-caches", "menage-ligne-shaders", "menage-ligne-proton"])
 
 
 class MenageAbsent(Base):

@@ -1,0 +1,71 @@
+{
+ "genere": "2026-11-10T09:00:00",
+ "disques": [],
+ "linstat": {
+  "moteur": false,
+  "commande": null
+ },
+ "analyses": {},
+ "recommandations": [
+  {
+   "id": "caches",
+   "titre": "Caches régénérables",
+   "explication": "Supprimés définitivement : les programmes les recréent au besoin.",
+   "octets": 1610612736,
+   "taille": "1,5 Go",
+   "mode": "supprimer",
+   "elements": [
+    {
+     "cible": "/home/exemple/.cache/pip",
+     "libelle": "pip",
+     "octets": 1610612736,
+     "taille": "1,5 Go"
+    }
+   ],
+   "a_copier": null,
+   "remarque": null
+  },
+  {
+   "id": "shaders",
+   "titre": "Caches de shaders sans jeu installé",
+   "explication": "Supprimés définitivement : Steam les recrée si tu réinstalles le jeu.",
+   "octets": 1310720000,
+   "taille": "1,2 Go",
+   "mode": "supprimer",
+   "elements": [
+    {
+     "cible": "/var/mnt/DONNEES/SteamLibrary/steamapps/shadercache/707",
+     "libelle": "Jeu Steam 707 (/var/mnt/DONNEES/SteamLibrary)",
+     "octets": 943718400,
+     "taille": "900 Mo"
+    },
+    {
+     "cible": "/var/mnt/DONNEES/SteamLibrary/steamapps/shadercache/808",
+     "libelle": "Jeu Steam 808 (/var/mnt/DONNEES/SteamLibrary)",
+     "octets": 367001600,
+     "taille": "350 Mo"
+    }
+   ],
+   "a_copier": null,
+   "remarque": null
+  },
+  {
+   "id": "proton",
+   "titre": "Versions de Proton inutilisées",
+   "explication": "Supprimées définitivement ; ProtonPlus peut les réinstaller.",
+   "octets": 1288699904,
+   "taille": "1,2 Go",
+   "mode": "supprimer",
+   "elements": [
+    {
+     "cible": "/home/exemple/.local/share/Steam/compatibilitytools.d/GE-Proton9-20",
+     "libelle": "GE-Proton9-20",
+     "octets": 1288699904,
+     "taille": "1,2 Go"
+    }
+   ],
+   "a_copier": null,
+   "remarque": null
+  }
+ ]
+}

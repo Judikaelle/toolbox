@@ -31,11 +31,11 @@ Rectangle {
         { "nom": "accueil", "texte": "Accueil", "icone": "go-home", "compteur": "" },
         { "nom": "majs", "texte": "Mises à jour", "icone": "view-refresh", "compteur": "majs" },
         { "nom": "sante", "texte": "Santé", "icone": "love", "compteur": "sante" },
-        { "nom": "stockage", "texte": "Stockage", "icone": "drive-harddisk", "compteur": "stockage" }
+        { "nom": "stockage", "texte": "Stockage", "icone": "drive-harddisk", "compteur": "stockage" },
+        { "nom": "jeux", "texte": "Jeux", "icone": "applications-games", "compteur": "" }
     ]
     // Pas encore disponibles : grisées, sous l'intertitre « BIENTÔT ».
     readonly property var bientot: [
-        { "nom": "jeux", "texte": "Jeux", "icone": "applications-games", "compteur": "" },
         { "nom": "demarrage", "texte": "Démarrage", "icone": "chronometer", "compteur": "" }
     ]
 

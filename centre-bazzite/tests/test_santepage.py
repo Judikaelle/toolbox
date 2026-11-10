@@ -6,8 +6,10 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from PySide6.QtCore import Q_ARG, Q_RETURN_ARG, QEvent, QMetaObject, Qt
+from PySide6.QtCore import QEvent, QMetaObject, QProcess, Qt
+from PySide6.QtQml import QQmlEngine, QQmlExpression
 
 from centre_bazzite import commun
 from tests.test_accueil import APP, ETATS, Fenetre
@@ -140,16 +142,27 @@ class VolumesAttendus(unittest.TestCase):
 
 class TailleQml(Base):
     def test_taille_qml_suit_commun_taille(self):
-        """La copie JS de commun.taille donne le même texte, bornes comprises (Ruling V43)."""
+        """La seule copie JS de commun.taille, Style.taille (UI-I1 : Santé et Jeux l'appellent), donne le même texte,
+        bornes comprises (Ruling V43)."""
         page = self.f.objet("page-sante")
         self.assertIsNotNone(page)
         gio, mio = 1024 ** 3, 1024 ** 2
         for octets in (0, 500 * mio, round(1023.4 * mio), round(1023.6 * mio), round(1.2 * gio),
                        round(2.25 * gio), round(9.94 * gio), round(9.96 * gio), round(12.5 * gio), 239 * gio,
                        round(1023.4 * gio), round(1023.5 * gio), round(1023.7 * gio), round(3.3 * 1024 ** 4)):
-            texte = QMetaObject.invokeMethod(page, "taille", Qt.DirectConnection,
-                                             Q_RETURN_ARG("QVariant"), Q_ARG("QVariant", octets))
+            e = QQmlExpression(QQmlEngine.contextForObject(page), page, f"Style.taille({octets})")
+            texte, _indefini = e.evaluate()
+            self.assertFalse(e.hasError(), e.error().toString())
             self.assertEqual(texte, commun.taille(octets), octets)
+        e = page = None
+
+    def test_aucune_autre_copie_de_taille(self):
+        """UI-I1 : plus de copie de taille() ni d'arrondi() hors de Style.qml (une copie non testée divergerait)."""
+        qml = Path(__file__).resolve().parent.parent / "fenetre" / "qml"
+        copies = [f.name for f in sorted(qml.glob("*.qml")) if f.name != "Style.qml"
+                  and ("function taille(" in f.read_text(encoding="utf-8")
+                       or "function arrondi(" in f.read_text(encoding="utf-8"))]
+        self.assertEqual(copies, [])
 
 
 class HorsLigne(unittest.TestCase):
@@ -342,7 +355,7 @@ class Resume(Base):
         self.assertLess(liste.mapToItem(page, 0, liste.property("height")).y(), domaines.mapToItem(page, 0, 0).y())
 
     def test_une_phrase_par_domaine_avec_sa_mesure_cle(self):
-        self.assertEqual(self.phrase("disques"), "NVMe Exemple SSD usé à 1 %, 35 °C")
+        self.assertEqual(self.phrase("disques"), "NVMe Exemple Z1 usé à 1 %, 35 °C")
         self.assertEqual(self.phrase("gpu"), "NVIDIA GeForce RTX 4070, 38 °C · Ollama arrêté · 9 gels")
         self.assertEqual(self.phrase("systeme"), "1 service en échec : maj-apps.service")
         self.assertEqual(self.phrase("controles"), "Image à jour · 0 runtime inutilisé")
@@ -368,10 +381,18 @@ class ResumeControles(Base):
 
     def test_phrases(self):
         self.assertEqual(self.f.objet("resume-phrase-disques").property("text"),
-                         "NVMe Exemple SSD usé à 1 %, 38 °C · 3 erreurs d'E/S · /var/mnt/DONNEES non monté")
+                         "NVMe Exemple Z1 usé à 1 %, 38 °C · 3 erreurs d'E/S")
         self.assertEqual(self.f.objet("resume-phrase-controles").property("text"),
                          "Bazzite 45.20261110 disponible · 2 Flatpak à mettre à jour · 3 runtimes inutilisés")
         self.assertEqual(self.f.objet("resume-phrase-systeme").property("text"), "Aucun service en échec")
+
+    def test_resume_disques_coherent_avec_son_badge(self):
+        """Task 9 : la phrase ne cite que ce que compte son badge. « Non monté » est un point de Stockage : il reste
+        dans Stockage et son compteur, pas dans cette ligne, dont le badge dit « OK »."""
+        phrase = self.f.objet("resume-phrase-disques").property("text")
+        self.assertNotIn("non monté", phrase)
+        self.assertNotIn("/var/mnt/DONNEES", phrase)
+        self.assertEqual(self.badge("resume-badge-disques"), ("OK", "ok"))
 
     def test_badges_seulement_de_la_rubrique_sante(self):
         """Ruling V68 : Données non monté, les erreurs d'E/S, le ménage et les mises à jour disponibles sont des points de
@@ -466,6 +487,51 @@ class SourdinesDeLaSante(Base):
         self.ouvrir_onglet("journal")
         self.assertTrue(self.f.objet("sourdine-deploiements:trop").property("visible"))
         self.assertIsNone(self.f.objet("sourdine-menage:journal"))
+
+
+class GelsRenvoyesVersJeux(Base):
+    """Task 7 : le détail des gels vit dans la page Jeux (D16) ; l'onglet GPU et jeux garde leur compte et y renvoie.
+    Fixture « complet » : 9 gels."""
+    dossier = "complet"
+
+    def setUp(self):
+        self.appels = []
+        faux = mock.patch.object(QProcess, "startDetached",
+                                 lambda prog, args: self.appels.append([prog] + list(args)) or (True, 1))
+        faux.start()
+        self.addCleanup(faux.stop)
+        super().setUp()
+        self.ouvrir_onglet("gpu")
+
+    def test_ligne_des_gels_garde_le_compte_et_le_badge(self):
+        self.assertEqual(self.f.objet("gels-sante").property("text"), "9 captures de gel")
+        self.assertEqual(self.badge("gels-sante-badge"), ("9 gels", "attention"))
+        self.assertEqual(self.f.objet("voir-gels").property("text"), "Voir dans Jeux")
+
+    def test_sante_gpu_renvoie_vers_jeux(self):
+        self.cliquer("voir-gels")
+        fenetre = self.f.racines[0]
+        self.assertEqual((fenetre.property("page"), fenetre.property("ongletJeux")), ("jeux", "gels"))
+        attendre(300)
+        nettoyer_emballages()
+        self.assertEqual(self.f.objet("jeux-onglets").property("courant"), "gels")
+        self.assertIn(["centre-bazzite", "jeux"], self.appels)          # remplacé : rien n'est lancé pour de bon
+
+
+class SansGels(unittest.TestCase):
+    def test_aucune_capture(self):
+        self.addCleanup(nettoyer_emballages)
+        self.f = Fenetre(variante(self, "controles", gels={"nombre": 0, "dernier": None}), "sante")
+        self.addCleanup(self.f.fermer)
+        QMetaObject.invokeMethod(self.f.objet("onglet-gpu"), "clicked", Qt.DirectConnection)
+        attendre(150)
+        nettoyer_emballages()
+        self.assertEqual(self.f.objet("gels-sante").property("text"), "Aucune capture de gel")
+        badge = self.f.objet("gels-sante-badge")
+        self.assertEqual((badge.property("visible"), badge.property("texte"), badge.property("etat")),
+                         (True, "Aucun gel", "ok"))
+        badge = None
+        self.assertEqual(self.f.objet("voir-gels").property("text"), "Voir dans Jeux")
 
 
 if __name__ == "__main__":

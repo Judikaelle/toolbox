@@ -1,10 +1,26 @@
+import contextlib
 import json
+import random
 import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
-from centre_bazzite import commun
+from centre_bazzite import commun, steam
+
+from tests.test_steam import ecrire_manifeste
+
+
+@contextlib.contextmanager
+def ordre_de_proc():
+    """Comme le vrai /proc : les pid dans l'ordre croissant (un dossier temporaire n'a pas d'ordre garanti)."""
+    vrai = Path.iterdir
+
+    def trie(self):
+        return iter(sorted(vrai(self), key=lambda p: (not p.name.isdigit(), int(p.name) if p.name.isdigit() else 0)))
+    with mock.patch.object(Path, "iterdir", trie):
+        yield
 
 
 class DetectionJeu(unittest.TestCase):
@@ -17,6 +33,172 @@ class DetectionJeu(unittest.TestCase):
         self.assertFalse(commun.est_jeu("konsole", b"HOME=/h\0"))
         self.assertFalse(commun.est_jeu("jeu", b"SteamGameId=0\0"))
         self.assertFalse(commun.est_jeu("jeu", b"NotSteamGameId=12\0"))
+
+    def test_jeu_en_cours_nom_non_utf8(self):
+        """W7 : /proc/<pid>/comm est coupé à 15 octets, parfois au milieu d'un caractère : jamais d'exception."""
+        with tempfile.TemporaryDirectory() as d, mock.patch.dict(steam._NOMS, clear=True):
+            proc, home = Path(d) / "proc", Path(d) / "home"       # home sans Steam : jamais le vrai
+            proc.mkdir()
+
+            def processus(pid, comm, environ):
+                (proc / pid).mkdir()
+                (proc / pid / "comm").write_bytes(comm)
+                (proc / pid / "environ").write_bytes(environ)
+            processus("12", b"\xff\xfeoutil\n", b"HOME=/h\0")
+            processus("34", b"konsole\n", b"HOME=/h\0")
+            (proc / "56").mkdir()                       # processus disparu entre-temps
+            (proc / "self").mkdir()
+            self.assertIsNone(commun.jeu_en_cours(proc, home=home))
+            processus("78", b"Plateformes \xc3\n", b"SteamGameId=101\0")
+            self.assertEqual(commun.jeu_en_cours(proc, home=home), "Plateformes \ufffd")
+
+
+class NomDuJeu(unittest.TestCase):
+    """RF-I1 : la présence d'un jeu ne change pas (elle décide du mode jeu) ; seul le nom montré change. D'abord le nom
+    de l'appmanifest de SteamGameId, sinon le processus de jeu qui a pris le plus de temps processeur hors enveloppes
+    (reaper, pressure-vessel…), sinon le premier processus de jeu. Noms inventés, home temporaire, faux /proc."""
+
+    def setUp(self):
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        self.tmp = Path(d.name)
+        self.proc = self.tmp / "proc"
+        self.proc.mkdir()
+        self.home = self.tmp / "home"                     # sans Steam, sauf si le test en crée un
+        self.racine = self.home / ".local" / "share" / "Steam"
+        self.enterContext(mock.patch.dict(steam._NOMS, clear=True))
+        self.enterContext(ordre_de_proc())
+
+    def processus(self, pid, comm, cpu=(0, 0), environ=b"HOME=/h\0SteamGameId=101\0"):
+        dossier = self.proc / str(pid)
+        dossier.mkdir()
+        (dossier / "comm").write_bytes(comm.encode() + b"\n")
+        (dossier / "environ").write_bytes(environ)
+        # /proc/<pid>/stat : utime et stime sont les champs 14 et 15 ; le nom entre parenthèses peut avoir des espaces.
+        (dossier / "stat").write_text(f"{pid} ({comm}) S 1 1 1 0 -1 4194304 10 0 0 0 {cpu[0]} {cpu[1]} 0 0 20 0 4 0 100",
+                                      encoding="ascii")
+
+    def jeu(self):
+        return commun.jeu_en_cours(self.proc, home=self.home)
+
+    def test_reaper_avant_le_jeu(self):
+        self.processus(10, "reaper", cpu=(1, 1))
+        self.processus(20, "Jeu.exe", cpu=(500, 100))
+        self.assertEqual(self.jeu(), "Jeu.exe")
+
+    def test_le_plus_gourmand_hors_enveloppes(self):
+        for pid, comm in enumerate(("reaper", "pv-adverb", "pressure-vessel", "srt-bwrap", "bwrap", "python3", "umu-run",
+                                    "proton", "services.exe", "plugplay.exe", "svchost.exe", "rpcss.exe"), start=10):
+            self.processus(pid, comm, cpu=(90000, 9000))
+        self.processus(40, "Lanceur.exe", cpu=(50, 5))
+        self.processus(41, "Jeu (final).exe", cpu=(900, 90))
+        self.processus(42, "konsole", cpu=(99999, 0), environ=b"HOME=/h\0")      # pas un jeu
+        self.assertEqual(self.jeu(), "Jeu (final).exe")
+
+    def test_seulement_des_enveloppes_garde_le_premier(self):
+        """Au lancement, seul reaper est là : le comportement d'avant."""
+        self.processus(10, "reaper", cpu=(1, 1))
+        self.processus(11, "pv-adverb", cpu=(5, 5))
+        self.assertEqual(self.jeu(), "reaper")
+
+    def test_nom_de_l_appmanifest(self):
+        ecrire_manifeste(self.racine, "101", "Jeu de course")
+        self.processus(10, "reaper", cpu=(1, 1))
+        self.assertEqual(self.jeu(), "Jeu de course")
+        self.processus(20, "Jeu.exe", cpu=(500, 100))
+        self.assertEqual(self.jeu(), "Jeu de course")
+
+    def test_appmanifest_d_une_bibliotheque_du_vdf(self):
+        bib = self.tmp / "Bib"
+        ecrire_manifeste(bib, "202", "Aventure")
+        (self.racine / "steamapps").mkdir(parents=True)
+        (self.racine / "steamapps" / "libraryfolders.vdf").write_text(
+            f'"libraryfolders"\n{{\n\t"0"\n\t{{\n\t\t"path"\t\t"{bib}"\n\t}}\n}}\n', encoding="utf-8")
+        self.processus(10, "reaper", environ=b"SteamGameId=202\0")
+        self.assertEqual(self.jeu(), "Aventure")
+
+    def test_manifeste_illisible_repli_sur_le_processeur(self):
+        ecrire_manifeste(self.racine, "101", "Jeu de course")
+        acf = self.racine / "steamapps" / "appmanifest_101.acf"
+        texte = acf.read_text(encoding="utf-8")
+        acf.write_text(texte[:texte.index('"InstalledDepots"')], encoding="utf-8")      # coupé
+        self.processus(10, "reaper", cpu=(1, 1))
+        self.processus(20, "Jeu.exe", cpu=(500, 100))
+        self.assertEqual(self.jeu(), "Jeu.exe")
+        acf.unlink()
+        acf.mkdir()                                                                     # illisible
+        steam._NOMS.clear()
+        self.assertEqual(self.jeu(), "Jeu.exe")
+
+    def test_appid_qui_n_est_pas_un_jeu_steam(self):
+        """Raccourci non-Steam (appid >= 2^31), umu, appid illisible : le processus, sans lire de manifeste."""
+        ecrire_manifeste(self.racine, "101", "Jeu de course")
+        self.processus(20, "Jeu.exe", cpu=(500, 100), environ=b"SteamGameId=12345678901234567890\0")
+        self.assertEqual(self.jeu(), "Jeu.exe")
+        for environ in (b"SteamGameId=umu-exemple\0", b"SteamGameId=1\xff\0"):
+            (self.proc / "20" / "environ").write_bytes(environ)
+            self.assertEqual(self.jeu(), "Jeu.exe")
+        self.assertEqual(steam._NOMS, {})
+
+    def test_erreur_du_nom_jamais_d_exception_ni_d_effet_sur_la_presence(self):
+        ecrire_manifeste(self.racine, "101", "Jeu de course")
+        self.processus(10, "reaper", cpu=(1, 1))
+        self.processus(20, "Jeu.exe", cpu=(500, 100))
+        with mock.patch.object(steam, "nom_du_jeu", side_effect=RuntimeError("boum")):
+            self.assertEqual(self.jeu(), "Jeu.exe")
+            with mock.patch.object(commun, "_temps_processeur", side_effect=RuntimeError("boum")):
+                self.assertEqual(self.jeu(), "reaper")
+        with mock.patch.object(steam, "bibliotheques", side_effect=OSError("disque")):
+            self.assertEqual(self.jeu(), "Jeu.exe")
+
+    def test_presence_inchangee(self):
+        """La présence (None, vide ou non vide) est exactement celle de la règle d'avant, quel que soit le nom trouvé :
+        des /proc tirés au hasard, comparés à une copie de l'ancienne jeu_en_cours."""
+        def avant(proc):
+            for p in Path(proc).iterdir():
+                if not p.name.isdigit():
+                    continue
+                try:
+                    comm = (p / "comm").read_bytes().decode("utf-8", errors="replace")
+                    if commun.est_jeu(comm, (p / "environ").read_bytes()):
+                        return comm.strip()
+                except (OSError, ValueError):
+                    continue
+            return None
+        ecrire_manifeste(self.racine, "101", "Jeu de course")
+        hasard = random.Random(7)
+        noms = [b"reaper", b"Jeu.exe", b"konsole", b"pv-adverb", b"steam", b"wineserver", b"", b"  ", b"python3",
+                b"\xff\xfe", b"Jeu \xc3"]
+        environs = [b"SteamGameId=101\0", b"SteamGameId=202\0", b"SteamGameId=0\0", b"HOME=/h\0", None]
+        for essai in range(80):
+            proc = self.tmp / f"proc{essai}"
+            proc.mkdir()
+            for pid in hasard.sample(range(1, 40), hasard.randint(0, 6)):
+                (proc / str(pid)).mkdir()
+                (proc / str(pid) / "comm").write_bytes(hasard.choice(noms) + b"\n")
+                environ = hasard.choice(environs)
+                if environ is not None:                    # sinon : processus disparu entre deux lectures
+                    (proc / str(pid) / "environ").write_bytes(environ)
+                if hasard.random() < 0.7:
+                    (proc / str(pid) / "stat").write_text(f"{pid} (x) S 1 1 1 0 -1 0 0 0 0 0 {hasard.randint(0, 999)} 0",
+                                                          encoding="ascii")
+            attendu, obtenu = avant(proc), commun.jeu_en_cours(proc, home=self.home)
+            with self.subTest(essai=essai, attendu=attendu, obtenu=obtenu):
+                self.assertEqual((attendu is None, bool(attendu)), (obtenu is None, bool(obtenu)))
+
+    def test_sans_jeu_aucun_nom_cherche(self):
+        self.processus(10, "konsole", environ=b"HOME=/h\0")
+        with mock.patch.object(steam, "nom_du_jeu") as nom:
+            self.assertIsNone(self.jeu())
+        nom.assert_not_called()
+
+    def test_nom_garde_par_appid(self):
+        """Le mode jeu demande le nom toutes les 5 s : l'appmanifest n'est lu qu'une fois par appid."""
+        ecrire_manifeste(self.racine, "101", "Jeu de course")
+        self.processus(10, "reaper")
+        with mock.patch.object(steam, "_nom_manifeste", wraps=steam._nom_manifeste) as lecture:
+            self.assertEqual([self.jeu() for _ in range(3)], ["Jeu de course"] * 3)
+        self.assertEqual(lecture.call_count, 1)
 
 
 class Json(unittest.TestCase):

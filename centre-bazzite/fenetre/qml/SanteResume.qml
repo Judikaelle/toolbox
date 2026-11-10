@@ -19,15 +19,14 @@ ColumnLayout {
     function pluriel(n, mot, mots) {
         return n + " " + (n > 1 ? mots : mot);
     }
-    // « Marque SSD X9 PRO usé à 1 %, 35 °C · 3 erreurs d'E/S · /var/mnt/DONNEES non monté »
+    // « Marque SSD X9 PRO usé à 1 %, 35 °C · 3 erreurs d'E/S ». « Non monté » est un point de Stockage : il n'est pas
+    // compté par le badge de cette ligne, donc il n'est pas écrit ici.
     function phraseDisques() {
         const parts = (sante.ssd ?? []).filter(d => d.sante).map(d => String(d.modele ?? "").split(" with ")[0]
             + " usé à " + page.pourcent(d.sante.usure) + ", " + page.degres(d.sante.temperature));
         const n = sante.erreurs_disque?.nombre ?? 0;
         if (n > 0)
             parts.push(pluriel(n, "erreur d'E/S", "erreurs d'E/S"));
-        for (const chemin of sante.non_montes ?? [])
-            parts.push(chemin + " non monté");
         if (parts.length > 0)
             return parts.join(" · ");
         return (sante.ssd ?? []).length === 0 ? "Disques pas encore mesurés" : "Santé non disponible par l'USB";

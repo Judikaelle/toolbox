@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from . import commun, inventaire, points as points_mod, rpmostree, sante as sante_mod, taches, uupd
+from . import modejeu as modejeu_mod
 
 FENETRE_ECHECS = timedelta(days=7)
 HISTORIQUE_MAJ_APPS = Path.home() / ".local" / "state" / "maj-apps" / "historique.jsonl"
@@ -229,7 +230,7 @@ def construire(complet=True, *, collecter=sante_mod.collecter,
                deploiements=rpmostree.etat_deploiements, unite_active=uupd.unite_active,
                executions=uupd.executions_depuis, historique=HISTORIQUE_MAJ_APPS,
                session_active=session_maj_active, jeu=commun.jeu_en_cours,
-               ollama=sante_mod.ollama, controles=sante_mod.lire_controles):
+               ollama=sante_mod.ollama, controles=sante_mod.lire_controles, modejeu=modejeu_mod.resume):
     fichier = commun.ETAT / "etat.json"
     visites = commun.lire_json(commun.ETAT / "visites.json", {})
     visites = visites if isinstance(visites, dict) else {}
@@ -292,6 +293,10 @@ def construire(complet=True, *, collecter=sante_mod.collecter,
     else:
         chrono, derniere_maj = [], None
     resumes, notes = _resumes(changements)
+    try:        # D14 : le résumé du mode jeu, en complet comme en léger ; illisible, il manque sans rien bloquer
+        resume_modejeu = modejeu()
+    except Exception:
+        resume_modejeu = None
     return {
         "genere": commun.maintenant(),
         "couleur": couleur,
@@ -302,6 +307,7 @@ def construire(complet=True, *, collecter=sante_mod.collecter,
         "extinction_annulee": _extinction_annulee(session),
         "redemarrage": bool((dep or {}).get("en_attente")),
         "jeu": jeu(),       # spec 7.3 : les interfaces proposent d'attendre la fin de la partie
+        "modejeu": resume_modejeu,
         "depuis_visite": {"depuis": depuis or None, "nombre": len(changements), "chronologie": chrono},
         "derniere_maj": derniere_maj,
         "sante": sante,

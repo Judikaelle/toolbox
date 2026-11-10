@@ -199,6 +199,7 @@ Item {
                 ARegarder {
                     Layout.fillWidth: true
                     rubrique: "majs"
+                    lignesTitre: 2         // colonne étroite : un titre de redémarrage long ne prend pas la hauteur
                 }
 
                 // Session choisie : issue, puis une ligne par étape.

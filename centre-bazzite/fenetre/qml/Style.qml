@@ -90,6 +90,27 @@ QtObject {
         }
     }
 
+    // --- Tailles : la seule copie de commun.taille (mêmes opérations, mêmes bornes ; Ruling V43, testée contre le
+    // moteur), appelée par Santé et Jeux. Base 1024, virgule, une décimale sous 10 Go et pour les To ; l'arrondi,
+    // moitié vers le haut, décide de l'unité et des décimales.
+    function arrondi(x, decimales) {
+        const f = Math.pow(10, decimales);
+        return Math.floor(x * f + 0.5) / f;
+    }
+    function taille(octets) {
+        const o = Math.max(0, Number(octets) || 0);
+        const mo = arrondi(o / 1048576, 0);
+        if (mo < 1024)
+            return mo.toFixed(0) + " Mo";
+        let go = arrondi(o / 1073741824, 1);
+        if (go < 10)
+            return go.toFixed(1).replace(".", ",") + " Go";
+        go = arrondi(o / 1073741824, 0);
+        if (go < 1024)
+            return go.toFixed(0) + " Go";
+        return arrondi(o / 1099511627776, 1).toFixed(1).replace(".", ",") + " To";
+    }
+
     // --- Temps et état global, communs à l'accueil et au menu ---
     readonly property var etatsGlobaux: ({
         "vert": { "mot": "Tout va bien", "badge": "ok" },

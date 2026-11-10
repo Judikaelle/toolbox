@@ -1,0 +1,10 @@
+{
+  "library": [
+    {"app_name": "aaa1", "title": "Énigmes", "runner": "legendary", "is_installed": true,
+     "install": {"executable": "jeu.exe", "install_path": "@INSTALL@/Enigmes", "install_size": "7.01 GiB", "is_dlc": false}},
+    {"app_name": "aaa2", "title": "Plateformes", "runner": "legendary", "is_installed": false, "install": {}},
+    {"app_name": "aaa3", "title": "Énigmes, extension", "runner": "legendary", "is_installed": true,
+     "install": {"install_path": "@INSTALL@/Enigmes", "install_size": "1.00 GiB", "is_dlc": true}}
+  ],
+  "__timestamp": {"tmp": 0}
+}

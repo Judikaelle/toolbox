@@ -69,34 +69,6 @@ Controls.ScrollView {
         const d = date(iso);
         return d ? d.toLocaleDateString(Qt.locale("fr_FR"), "d MMM") : "date inconnue";
     }
-    function jour(iso) {
-        const d = date(iso);
-        return d ? d.toLocaleDateString(Qt.locale("fr_FR"), "d MMMM yyyy") : "";
-    }
-    // « 20260921-194442-GEL-JeuDeCourse.ex.txt » → « 21 septembre 2026 ».
-    function dateDuGel(fichier) {
-        const m = /^(\d{4})(\d{2})(\d{2})/.exec(String(fichier ?? ""));
-        return m ? jour(m[1] + "-" + m[2] + "-" + m[3] + "T12:00:00") : "";
-    }
-    // Copie de commun.taille (mêmes opérations, mêmes bornes) : base 1024, virgule, une décimale sous
-    // 10 Go et pour les To ; l'arrondi, moitié vers le haut, décide de l'unité et des décimales.
-    function arrondi(x, decimales) {
-        const f = Math.pow(10, decimales);
-        return Math.floor(x * f + 0.5) / f;
-    }
-    function taille(octets) {
-        const o = Math.max(0, Number(octets) || 0);
-        const mo = arrondi(o / 1048576, 0);
-        if (mo < 1024)
-            return mo.toFixed(0) + " Mo";
-        let go = arrondi(o / 1073741824, 1);
-        if (go < 10)
-            return go.toFixed(1).replace(".", ",") + " Go";
-        go = arrondi(o / 1073741824, 0);
-        if (go < 1024)
-            return go.toFixed(0) + " Go";
-        return arrondi(o / 1099511627776, 1).toFixed(1).replace(".", ",") + " To";
-    }
     function pointDe(prefixe) {
         return points.find(p => String(p.id).startsWith(prefixe)) ?? null;
     }
@@ -141,13 +113,13 @@ Controls.ScrollView {
         const t = c.telechargements;
         if (t.length > 0)
             return ligne(t.length + (t.length > 1 ? " incomplets" : " incomplet"), "attention",
-                         liste(t.map(x => x.nom + " (" + taille(x.octets) + ", " + x.present + " % présent)")));
+                         liste(t.map(x => x.nom + " (" + Style.taille(x.octets) + ", " + x.present + " % présent)")));
         return ligne("OK", "ok", "Aucun téléchargement interrompu.");
     }
     function ligneCaches(c) {
         const k = c?.caches ?? null;
-        const tailles = k ? "Miniatures " + taille(k.miniatures) + " · corbeille " + taille(k.corbeille)
-                            + (k.journal != null ? " · journal système " + taille(k.journal) : "") : "";
+        const tailles = k ? "Miniatures " + Style.taille(k.miniatures) + " · corbeille " + Style.taille(k.corbeille)
+                            + (k.journal != null ? " · journal système " + Style.taille(k.journal) : "") : "";
         if (k === null || k.journal == null)
             return impossible(tailles !== "" ? tailles : "Les caches n'ont pas pu être mesurés.");
         if (pointDe("menage:journal"))
@@ -158,7 +130,7 @@ Controls.ScrollView {
         const b = c?.boot ?? null;
         if (b === null)
             return impossible("La partition /boot n'a pas pu être mesurée.");
-        const detail = taille(b.libre_go * 1073741824) + " libres sur " + taille(b.total_go * 1073741824);
+        const detail = Style.taille(b.libre_go * 1073741824) + " libres sur " + Style.taille(b.total_go * 1073741824);
         return pointDe("volume:/boot") ? ligne("Presque plein", "attention", detail) : ligne("OK", "ok", detail);
     }
     function ligneErreurs(e) {

@@ -98,9 +98,10 @@ class Base(unittest.TestCase):
         return menage.recommandations(home=self.home, maintenant=kw.pop("maintenant", MAINTENANT), run=run or FauxRun(),
                                       controles={} if controles is None else controles, steam=steam, **kw)
 
-    def executer(self, id_, recos, run=None, jeu=NON, maj=lambda: False, steam=NON, maintenant=MAINTENANT):
+    def executer(self, id_, recos, run=None, jeu=NON, maj=lambda: False, steam=NON, maintenant=MAINTENANT,
+                 bibliotheques=None):
         return menage.executer(id_, recos, home=self.home, maintenant=maintenant, run=run or FauxRun(), jeu=jeu,
-                               maj=maj, steam=steam)
+                               maj=maj, steam=steam, bibliotheques=bibliotheques)
 
     def jeter(self, cmd):
         """Faux `gio trash -- <chemins>` : retire les chemins, seulement s'ils sont dans le home temporaire."""
@@ -111,10 +112,18 @@ class Base(unittest.TestCase):
             shutil.rmtree(p) if p.is_dir() and not p.is_symlink() else p.unlink()
         return 0, ""
 
+    def vdf_vide(self):
+        """Un libraryfolders.vdf lisible sans bibliothèque : la racine Steam du home temporaire est « vérifiable »."""
+        vdf = self.home / ".local" / "share" / "Steam" / "steamapps" / "libraryfolders.vdf"
+        vdf.parent.mkdir(parents=True, exist_ok=True)
+        vdf.write_text('"libraryfolders"\n{\n}\n', encoding="utf-8")
+
     def steam_config(self):
+        self.vdf_vide()
         fichier(self.home / ".local" / "share" / "Steam" / "config" / "config.vdf").write_text(CONFIG_VDF, encoding="utf-8")
 
     def protons(self, octets=KIO):
+        self.vdf_vide()
         compat = self.home / ".local" / "share" / "Steam" / "compatibilitytools.d"
         for nom in ("GE-Proton9-20", "GE-Proton10-25", "GE-Proton10-26"):
             fichier(compat / nom / "proton", octets)
@@ -361,7 +370,17 @@ class Recommandations(Base):
             (Path(proc) / "42" / "comm").write_text("steam\n", encoding="utf-8")
             self.assertEqual(menage.steam_ouvert(Path(proc)), "steam")
 
+    def test_steam_ouvert_nom_non_utf8(self):
+        """RF-m2 : comm est coupé à 15 octets, parfois au milieu d'un caractère : jamais d'exception (comme W7)."""
+        with tempfile.TemporaryDirectory() as proc:
+            fichier(Path(proc) / "7" / "comm").write_bytes(b"\xff\xfeoutil \xc3\n")
+            fichier(Path(proc) / "42" / "comm").write_text("konsole\n", encoding="utf-8")
+            self.assertIsNone(menage.steam_ouvert(Path(proc)))
+            (Path(proc) / "42" / "comm").write_text("steam\n", encoding="utf-8")
+            self.assertEqual(menage.steam_ouvert(Path(proc)), "steam")
+
     def test_prefixes_proton_jamais_proposes(self):
+        self.vdf_vide()
         compatdata = self.home / ".local" / "share" / "Steam" / "steamapps" / "compatdata"
         fichier(compatdata / "123" / "pfx" / "user.reg", 10 * KIO, age=300)
         vieillir(compatdata / "123", 300)
@@ -860,6 +879,273 @@ class Executer(Base):
         self.assertEqual(res["erreur"], "Recommandation inconnue.")
 
 
+class Shaders(Base):
+    """Caches de shaders sans jeu installé (D3) : steamapps/shadercache/<appid> dans une bibliothèque Steam."""
+
+    def setUp(self):
+        super().setUp()
+        self.a, self.b = self.home / "BibA", self.home / "BibB"
+        for appid in ("101",):
+            self.manifeste(self.a, appid)
+        for appid in ("202",):
+            self.manifeste(self.b, appid)
+        self.manifeste(self.b, "404", ".acf.123.tmp")
+        (self.b / "steamapps" / "downloading" / "505").mkdir(parents=True)
+        for nom in ("101", "202", "303", "3000000001", "notes"):
+            fichier(self.a / "steamapps" / "shadercache" / nom / "cache.bin", KIO)
+        for nom in ("404", "505"):
+            fichier(self.b / "steamapps" / "shadercache" / nom / "cache.bin", KIO)
+        self.c303 = self.a / "steamapps" / "shadercache" / "303"
+
+    def manifeste(self, bib, appid, suffixe=".acf"):
+        dossier = bib / "steamapps"
+        dossier.mkdir(parents=True, exist_ok=True)
+        (dossier / f"appmanifest_{appid}{suffixe}").write_text(
+            f'"AppState"\n{{\n\t"appid"\t\t"{appid}"\n\t"name"\t\t"Jeu"\n}}\n', encoding="utf-8")
+
+    def reco(self, **kw):
+        return par_id(self.recos(bibliotheques=[self.a, self.b], **kw)).get("shaders")
+
+    def vdf(self, bib=None, apps=(), texte=None):
+        """Le libraryfolders.vdf de la racine Steam du home temporaire (une bibliothèque `bib` déclarant `apps`)."""
+        fichier_vdf = self.home / ".local" / "share" / "Steam" / "steamapps" / "libraryfolders.vdf"
+        fichier_vdf.parent.mkdir(parents=True, exist_ok=True)
+        if texte is None:
+            lignes = "".join('\t\t\t"%s"\t\t"1"\n' % a for a in apps)
+            texte = ('"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t\t"%s"\n\t\t"apps"\n\t\t{\n%s\t\t}\n\t}\n}\n'
+                     % (bib or self.a, lignes))
+        if fichier_vdf.is_dir():
+            fichier_vdf.rmdir()
+        fichier_vdf.write_text(texte, encoding="utf-8")
+        return fichier_vdf
+
+    def executer_shaders(self, recos=None, **kw):
+        return self.executer("shaders", recos or [self.reco()], bibliotheques=[self.a, self.b], **kw)
+
+    def test_shaders_sans_jeu_installe(self):
+        reco = self.reco()
+        self.assertEqual(cibles(reco), [str(self.c303)])
+        self.assertEqual(reco["elements"][0]["libelle"], f"Jeu Steam 303 ({self.a})")
+        self.assertEqual((reco["titre"], reco["mode"]), ("Caches de shaders sans jeu installé", "supprimer"))
+        self.assertIn("shaders", menage.IDS_JEUX)
+
+    def test_shaders_proposes_meme_quand_steam_est_ouvert(self):
+        self.assertEqual(cibles(par_id(self.recos(bibliotheques=[self.a, self.b], steam=lambda: "steam"))["shaders"]),
+                         [str(self.c303)])
+
+    def test_shaders_jeu_en_cours_d_installation_garde(self):
+        for appid in ("404", "505"):
+            self.assertNotIn(appid, [Path(c).name for c in cibles(self.reco())])
+
+    def test_shaders_raccourci_non_steam_jamais_propose(self):
+        self.assertNotIn("3000000001", [Path(c).name for c in cibles(self.reco())])
+
+    def test_shaders_reverifies_au_moment_d_agir(self):
+        reco = self.reco()
+        self.manifeste(self.b, "303")                         # le jeu s'installe après l'affichage
+        res = self.executer_shaders([reco])
+        self.assertEqual(res["ignores"], [{"cible": str(self.c303), "raison": "utilisé maintenant"}])
+        self.assertEqual((res["faits"], res["liberes"]), ([], 0))
+        self.assertTrue((self.c303 / "cache.bin").exists())
+
+    def test_shaders_installation_en_cours_pendant_l_action(self):
+        reco = self.reco()
+        (self.b / "steamapps" / "downloading" / "303").mkdir()
+        res = self.executer_shaders([reco])
+        self.assertEqual([i["raison"] for i in res["ignores"]], ["utilisé maintenant"])
+        self.assertTrue(self.c303.exists())
+
+    def test_shaders_bibliotheque_absente_ignoree(self):
+        vdf = self.home / ".local" / "share" / "Steam" / "steamapps" / "libraryfolders.vdf"
+        vdf.parent.mkdir(parents=True)
+        vdf.write_text('"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t\t"%s"\n\t\t"apps"\n\t\t{\n\t\t\t"303"\t\t"1"\n'
+                       '\t\t}\n\t}\n}\n' % (self.home / "Debranche"), encoding="utf-8")
+        with mock.patch("sys.stderr") as err:
+            recos = self.recos(bibliotheques=[self.a, self.b])
+        # 303 est installé sur le disque débranché : son cache n'est pas orphelin
+        self.assertNotIn("shaders", par_id(recos))
+        self.assertEqual(err.write.call_args_list, [])
+
+    def test_shaders_chemin_par_defaut_bibliotheque_absente_ignoree(self):
+        """Sans bibliotheques injectées (P8) : 303 est déclaré par une bibliothèque débranchée, son cache est sur la
+        racine Steam : il n'est pas proposé."""
+        racine = self.home / ".local" / "share" / "Steam"
+        fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO)
+        self.vdf(bib=self.home / "Debranche", apps=("303",))
+        self.assertNotIn("shaders", par_id(self.recos()))
+
+    def test_shaders_vdf_remplace_par_un_dossier_rien_propose(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO)
+        self.vdf(bib=racine).unlink()
+        (racine / "steamapps" / "libraryfolders.vdf").mkdir()
+        with mock.patch("sys.stderr") as err:
+            self.assertNotIn("shaders", par_id(self.recos()))
+        self.assertIn("libraryfolders", "".join(c.args[0] for c in err.write.call_args_list))
+        reco = menage._shaders(self.home, menage._bibliotheques_steam(self.home, None))
+        self.assertEqual(reco["elements"], [])
+        self.assertIn("Steam", reco["remarque"])
+
+    def test_shaders_vdf_absent_racine_existante_rien_propose(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO)
+        with mock.patch("sys.stderr"):
+            self.assertNotIn("shaders", par_id(self.recos()))
+
+    def test_shaders_vdf_coupe_rien_propose(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO)
+        texte = self.vdf(bib=racine).read_text(encoding="utf-8")
+        self.vdf(texte=texte[:len(texte) // 2])
+        with mock.patch("sys.stderr"):
+            self.assertNotIn("shaders", par_id(self.recos()))
+
+    def _vdf_deux_bibliotheques(self, racine):
+        bloc = '\t"%d"\n\t{\n\t\t"path"\t\t"%s"\n\t\t"apps"\n\t\t{\n%s\t\t}\n\t}\n'
+        return ('"libraryfolders"\n{\n' + bloc % (0, racine, "") + bloc % (1, self.a, '\t\t\t"303"\t\t"1"\n') + "}\n")
+
+    def test_shaders_vdf_coupe_apres_la_premiere_bibliotheque_rien_propose_ni_supprime(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        cache = fichier(racine / "steamapps" / "shadercache" / "909" / "cache.bin", KIO).parent
+        texte = self._vdf_deux_bibliotheques(racine)
+        coupe = texte[:texte.index('\t"1"')]                # finit par la `}` de la bibliothèque 0
+        self.assertTrue(coupe.rstrip().endswith("}"))
+        self.vdf(texte=coupe)
+        with mock.patch("sys.stderr"):
+            self.assertNotIn("shaders", par_id(self.recos()))
+        self.vdf(texte=texte)                               # affichage sain, puis coupure avant l'action
+        recos = self.recos()
+        self.assertIn(str(cache), cibles(par_id(recos)["shaders"]))
+        self.vdf(texte=coupe)
+        res = menage.executer("shaders", recos, home=self.home, run=FauxRun(), jeu=NON, maj=lambda: False, steam=NON)
+        self.assertEqual((res["faits"], res["liberes"]), ([], 0))
+        self.assertEqual({i["raison"] for i in res["ignores"]}, {menage.NON_VERIFIABLE})
+        self.assertIn(str(cache), [i["cible"] for i in res["ignores"]])
+        self.assertTrue((cache / "cache.bin").exists())
+
+    def test_shaders_vdf_devenu_illisible_avant_l_action_refuse_tout(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        cache = fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO).parent
+        self.vdf(bib=racine)
+        recos = self.recos()
+        self.assertEqual(cibles(par_id(recos)["shaders"]), [str(cache)])
+        (racine / "steamapps" / "libraryfolders.vdf").unlink()
+        (racine / "steamapps" / "libraryfolders.vdf").mkdir()
+        res = menage.executer("shaders", recos, home=self.home, run=FauxRun(), jeu=NON, maj=lambda: False, steam=NON)
+        self.assertEqual((res["faits"], res["liberes"]), ([], 0))
+        self.assertEqual(res["ignores"], [{"cible": str(cache), "raison": menage.NON_VERIFIABLE}])
+        self.assertTrue((cache / "cache.bin").exists())
+
+    def test_shaders_deux_racines_une_sans_vdf_rien_propose_ni_supprime(self):
+        """RF-m5 : l'inventaire liste désormais les bibliothèques lues dans une racine même si une autre racine n'a pas
+        de libraryfolders.vdf ; le ménage, lui, reste fermé (W5) : rien n'est proposé, rien n'est supprimé."""
+        racine = self.home / ".local" / "share" / "Steam"
+        cache = fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO).parent
+        self.vdf(bib=racine)
+        recos = self.recos()
+        self.assertEqual(cibles(par_id(recos)["shaders"]), [str(cache)])
+        flatpak = self.home / ".var" / "app" / "com.valvesoftware.Steam" / ".local" / "share" / "Steam"
+        (flatpak / "steamapps").mkdir(parents=True)
+        with mock.patch("sys.stderr"):
+            self.assertNotIn("shaders", par_id(self.recos()))
+        res = menage.executer("shaders", recos, home=self.home, run=FauxRun(), jeu=NON, maj=lambda: False, steam=NON)
+        self.assertEqual((res["faits"], res["liberes"]), ([], 0))
+        self.assertEqual(res["ignores"], [{"cible": str(cache), "raison": menage.NON_VERIFIABLE}])
+        self.assertTrue((cache / "cache.bin").exists())
+
+    def test_shaders_par_defaut_relit_les_bibliotheques_du_home(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        self.vdf(bib=racine)
+        fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO)
+        self.assertEqual(cibles(par_id(self.recos())["shaders"]), [str(racine / "steamapps" / "shadercache" / "303")])
+
+    def test_shaders_lien_symbolique_refuse(self):
+        with tempfile.TemporaryDirectory() as dehors:
+            fichier(Path(dehors) / "precieux.bin", KIO)
+            lien = self.a / "steamapps" / "shadercache" / "606"
+            lien.symlink_to(dehors)
+            self.assertNotIn(str(lien), cibles(self.reco()))
+            res = self.executer_shaders([{"id": "shaders", "elements": [{"cible": str(lien)}]}])
+            self.assertEqual(res["ignores"], [{"cible": str(lien), "raison": "lien symbolique"}])
+            self.assertTrue((Path(dehors) / "precieux.bin").exists())
+
+    def test_shaders_hors_de_son_dossier(self):
+        autre = fichier(self.home / "autre" / "303" / "cache.bin", KIO).parent
+        res = self.executer_shaders([{"id": "shaders", "elements": [{"cible": str(autre)}]}])
+        self.assertEqual(res["ignores"], [{"cible": str(autre), "raison": "hors de son dossier"}])
+        self.assertTrue(autre.exists())
+
+    def test_shaders_nom_non_decimal_ou_trop_grand_refuse(self):
+        notes = self.a / "steamapps" / "shadercache" / "notes"
+        grand = self.a / "steamapps" / "shadercache" / "3000000001"
+        res = self.executer_shaders([{"id": "shaders", "elements": [{"cible": str(notes)}, {"cible": str(grand)}]}])
+        self.assertEqual([i["raison"] for i in res["ignores"]], ["hors de son dossier"] * 2)
+        self.assertTrue(notes.exists() and grand.exists())
+
+    def test_shaders_steam_ouvert(self):
+        res = self.executer_shaders(steam=lambda: "steam")
+        self.assertEqual(res["erreur"], menage.STEAM_SHADERS)
+        self.assertEqual((res["faits"], res["ignores"]), ([], []))
+        self.assertTrue(self.c303.exists())
+
+    def test_shaders_pendant_un_jeu(self):
+        res = self.executer_shaders(jeu=lambda: "jeu.exe")
+        self.assertEqual(res["erreur"], menage.JEU)
+        self.assertTrue(self.c303.exists())
+
+    def test_shaders_pendant_une_mise_a_jour(self):
+        res = self.executer_shaders(maj=lambda: True)
+        self.assertEqual(res["erreur"], menage.MAJ)
+        self.assertTrue(self.c303.exists())
+
+    def test_shaders_supprimes_et_liberes(self):
+        res = self.executer_shaders()
+        self.assertEqual((res["faits"], res["ignores"], res["erreur"]), ([str(self.c303)], [], None))
+        self.assertGreater(res["liberes"], 0)
+        self.assertFalse(self.c303.exists())
+        for reste in ("101", "202", "3000000001", "notes"):
+            self.assertTrue((self.a / "steamapps" / "shadercache" / reste / "cache.bin").exists(), reste)
+        for reste in ("404", "505"):
+            self.assertTrue((self.b / "steamapps" / "shadercache" / reste / "cache.bin").exists(), reste)
+
+    def test_shaders_bibliotheques_relues_par_defaut_au_moment_d_agir(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        self.vdf(bib=racine)
+        cache = fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO).parent
+        res = menage.executer("shaders", self.recos(), home=self.home, run=FauxRun(), jeu=NON, maj=lambda: False,
+                              steam=NON)
+        self.assertEqual(res["faits"], [str(cache)])
+        self.assertFalse(cache.exists())
+
+    def test_ordre_des_recommandations(self):
+        self.protons()
+        self.vdf(bib=self.a)
+        ids = [r["id"] for r in self.recos(bibliotheques=[self.a, self.b])]
+        self.assertEqual(ids, ["shaders", "proton"])
+
+    def test_prefixes_jamais_proposes(self):
+        for nom in ("303", "3000000001", "101.copie"):
+            fichier(self.a / "steamapps" / "compatdata" / nom / "pfx.bin", KIO)
+        recos = self.recos(bibliotheques=[self.a, self.b])
+        for reco in recos:
+            for cible in cibles(reco):
+                self.assertNotIn("/compatdata/", cible)
+        for id_ in ("prefixes", "compatdata"):
+            self.assertEqual(self.executer(id_, recos)["erreur"], menage.INCONNUE)
+        self.assertTrue((self.a / "steamapps" / "compatdata" / "303" / "pfx.bin").exists())
+
+    def test_proton_cite_par_un_runner_lutris_garde(self):
+        for dossier in (self.home / ".local" / "share" / "lutris" / "runners",
+                        self.home / ".var" / "app" / "net.lutris.Lutris" / "data" / "lutris" / "runners"):
+            with self.subTest(dossier=dossier):
+                compat = self.protons()
+                runner = fichier(dossier / "wine.yml")
+                runner.write_text("wine:\n  version: GE-Proton10-25\n", encoding="utf-8")
+                self.assertNotIn("proton", par_id(self.recos()))
+                runner.unlink()
+                self.assertEqual(cibles(par_id(self.recos())["proton"]), [str(compat / "GE-Proton10-25")])
+
+
 class MiseAJourEnCours(unittest.TestCase):
     """La même source que le reste du moteur : session-en-cours.json, l'unité de la session, et celles de la nuit."""
 
@@ -999,6 +1285,32 @@ class Cli(Base):
         self.assertNotEqual(code, 0)
         self.assertEqual(self.tache()["detail"], "Une mise à jour est en cours : ménage reporté.")
         self.assertTrue(x.exists())
+
+    def shaders_du_home(self):
+        racine = self.home / ".local" / "share" / "Steam"
+        (racine / "steamapps").mkdir(parents=True, exist_ok=True)
+        (racine / "steamapps" / "libraryfolders.vdf").write_text('"libraryfolders"\n{\n}\n', encoding="utf-8")
+        return fichier(racine / "steamapps" / "shadercache" / "303" / "cache.bin", KIO).parent
+
+    def test_cli_menage_shaders(self):
+        cache = self.shaders_du_home()
+        r = self.publier()["shaders"]
+        code, ecrire = self.lancer("shaders", menage.empreinte(r["elements"]))
+        self.assertEqual(code, 0)
+        t = self.tache()
+        self.assertEqual((t["id"], t["statut"]), ("menage:shaders", "fini"))
+        self.assertTrue(t["detail"].endswith("libérés"), t["detail"])
+        self.assertFalse(cache.exists())
+        ecrire.assert_called_once_with()
+
+    def test_cli_menage_shaders_empreinte_changee(self):
+        cache = self.shaders_du_home()
+        self.publier()
+        code, _ = self.lancer("shaders", "0123456789abcdef")
+        self.assertEqual(code, 1)
+        t = self.tache()
+        self.assertEqual((t["statut"], t["detail"]), ("echec", menage.CHANGEE))
+        self.assertTrue((cache / "cache.bin").exists())
 
     def test_cli_telechargements_dit_corbeille(self):
         fichier(self.home / "Téléchargements" / "vieux.zip", KIO, age=100)
