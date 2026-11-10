@@ -1,0 +1,222 @@
+{
+   "iwlwifi_1-virtual-0":{
+      "Adapter": "Virtual device",
+      "temp1":{
+
+      }
+   },
+   "spd5118-i2c-12-53":{
+      "Adapter": "SMBus I801 adapter at 0000:00:1f.4",
+      "temp1":{
+         "temp1_input": 32.500,
+         "temp1_max": 55.000,
+         "temp1_min": 0.000,
+         "temp1_crit": 85.000,
+         "temp1_lcrit": 0.000,
+         "temp1_max_alarm": 0.000,
+         "temp1_min_alarm": 0.000,
+         "temp1_crit_alarm": 0.000,
+         "temp1_lcrit_alarm": 0.000
+      }
+   },
+   "r8169_0_300:00-mdio-0":{
+      "Adapter": "MDIO adapter",
+      "temp1":{
+         "temp1_input": 37.000,
+         "temp1_max": 120.000
+      }
+   },
+   "acpitz-acpi-0":{
+      "Adapter": "ACPI interface",
+      "temp1":{
+         "temp1_input": 16.800
+      },
+      "temp2":{
+         "temp2_input": 27.800
+      }
+   },
+   "coretemp-isa-0000":{
+      "Adapter": "ISA adapter",
+      "Package id 0":{
+         "temp1_input": 37.000,
+         "temp1_max": 80.000,
+         "temp1_crit": 100.000,
+         "temp1_crit_alarm": 0.000
+      },
+      "Core 0":{
+         "temp2_input": 31.000,
+         "temp2_max": 80.000,
+         "temp2_crit": 100.000,
+         "temp2_crit_alarm": 0.000
+      },
+      "Core 4":{
+         "temp6_input": 31.000,
+         "temp6_max": 80.000,
+         "temp6_crit": 100.000,
+         "temp6_crit_alarm": 0.000
+      },
+      "Core 8":{
+         "temp10_input": 35.000,
+         "temp10_max": 80.000,
+         "temp10_crit": 100.000,
+         "temp10_crit_alarm": 0.000
+      },
+      "Core 12":{
+         "temp14_input": 32.000,
+         "temp14_max": 80.000,
+         "temp14_crit": 100.000,
+         "temp14_crit_alarm": 0.000
+      },
+      "Core 16":{
+         "temp18_input": 35.000,
+         "temp18_max": 80.000,
+         "temp18_crit": 100.000,
+         "temp18_crit_alarm": 0.000
+      },
+      "Core 20":{
+         "temp22_input": 35.000,
+         "temp22_max": 80.000,
+         "temp22_crit": 100.000,
+         "temp22_crit_alarm": 0.000
+      },
+      "Core 24":{
+         "temp26_input": 35.000,
+         "temp26_max": 80.000,
+         "temp26_crit": 100.000,
+         "temp26_crit_alarm": 0.000
+      },
+      "Core 28":{
+         "temp30_input": 31.000,
+         "temp30_max": 80.000,
+         "temp30_crit": 100.000,
+         "temp30_crit_alarm": 0.000
+      },
+      "Core 32":{
+         "temp34_input": 36.000,
+         "temp34_max": 80.000,
+         "temp34_crit": 100.000,
+         "temp34_crit_alarm": 0.000
+      },
+      "Core 33":{
+         "temp35_input": 36.000,
+         "temp35_max": 80.000,
+         "temp35_crit": 100.000,
+         "temp35_crit_alarm": 0.000
+      },
+      "Core 34":{
+         "temp36_input": 36.000,
+         "temp36_max": 80.000,
+         "temp36_crit": 100.000,
+         "temp36_crit_alarm": 0.000
+      },
+      "Core 35":{
+         "temp37_input": 36.000,
+         "temp37_max": 80.000,
+         "temp37_crit": 100.000,
+         "temp37_crit_alarm": 0.000
+      },
+      "Core 36":{
+         "temp38_input": 36.000,
+         "temp38_max": 80.000,
+         "temp38_crit": 100.000,
+         "temp38_crit_alarm": 0.000
+      },
+      "Core 37":{
+         "temp39_input": 36.000,
+         "temp39_max": 80.000,
+         "temp39_crit": 100.000,
+         "temp39_crit_alarm": 0.000
+      },
+      "Core 38":{
+         "temp40_input": 36.000,
+         "temp40_max": 80.000,
+         "temp40_crit": 100.000,
+         "temp40_crit_alarm": 0.000
+      },
+      "Core 39":{
+         "temp41_input": 36.000,
+         "temp41_max": 80.000,
+         "temp41_crit": 100.000,
+         "temp41_crit_alarm": 0.000
+      },
+      "Core 40":{
+         "temp42_input": 35.000,
+         "temp42_max": 80.000,
+         "temp42_crit": 100.000,
+         "temp42_crit_alarm": 0.000
+      },
+      "Core 41":{
+         "temp43_input": 35.000,
+         "temp43_max": 80.000,
+         "temp43_crit": 100.000,
+         "temp43_crit_alarm": 0.000
+      },
+      "Core 42":{
+         "temp44_input": 35.000,
+         "temp44_max": 80.000,
+         "temp44_crit": 100.000,
+         "temp44_crit_alarm": 0.000
+      },
+      "Core 43":{
+         "temp45_input": 35.000,
+         "temp45_max": 80.000,
+         "temp45_crit": 100.000,
+         "temp45_crit_alarm": 0.000
+      }
+   },
+   "spd5118-i2c-12-51":{
+      "Adapter": "SMBus I801 adapter at 0000:00:1f.4",
+      "temp1":{
+         "temp1_input": 32.750,
+         "temp1_max": 55.000,
+         "temp1_min": 0.000,
+         "temp1_crit": 85.000,
+         "temp1_lcrit": 0.000,
+         "temp1_max_alarm": 0.000,
+         "temp1_min_alarm": 0.000,
+         "temp1_crit_alarm": 0.000,
+         "temp1_lcrit_alarm": 0.000
+      }
+   },
+   "gigabyte_wmi-virtual-0":{
+      "Adapter": "Virtual device",
+      "temp1":{
+         "temp1_input": 25.000
+      },
+      "temp2":{
+         "temp2_input": 35.000
+      },
+      "temp3":{
+         "temp3_input": 37.000
+      },
+      "temp4":{
+         "temp4_input": 34.000
+      },
+      "temp5":{
+         "temp5_input": 35.000
+      },
+      "temp6":{
+         "temp6_input": 27.000
+      }
+   },
+   "nvme-pci-0500":{
+      "Adapter": "PCI adapter",
+      "Composite":{
+         "temp1_input": 34.850,
+         "temp1_max": 81.850,
+         "temp1_min": -273.150,
+         "temp1_crit": 84.850,
+         "temp1_alarm": 0.000
+      },
+      "Sensor 1":{
+         "temp2_input": 34.850,
+         "temp2_max": 65261.850,
+         "temp2_min": -273.150
+      },
+      "Sensor 2":{
+         "temp3_input": 37.850,
+         "temp3_max": 65261.850,
+         "temp3_min": -273.150
+      }
+   }
+}

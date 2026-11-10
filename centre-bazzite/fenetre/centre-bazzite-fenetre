@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Fenêtre du Health Hub : PySide6 + QML Kirigami, ouverte à la demande.
+--capture <png> [--page accueil|majs|sante|stockage] [--onglet CLE] [--etat DOSSIER] [--taille LxH] [--activite] affiche la
+page, l'enregistre en image puis quitte (vérification sans intervention : ni résumé, ni marqueur « vu »)."""
+import argparse
+import os
+import sys
+from pathlib import Path
+
+ICI = Path(__file__).resolve().parent
+sys.path.insert(0, str(ICI))
+
+from PySide6.QtCore import QTimer, QUrl  # noqa: E402
+from PySide6.QtGui import QIcon  # noqa: E402
+from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
+from PySide6.QtQuickControls2 import QQuickStyle  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
+
+import apparence  # noqa: E402
+from pont import Pont  # noqa: E402
+
+NOM = "centre-bazzite"
+PAGES = ("accueil", "majs", "sante", "stockage")
+# Pages à onglets : la propriété de Main.qml qui garde l'onglet ouvert (--onglet la pose).
+ONGLETS = {"stockage": "ongletStockage", "sante": "ongletSante"}
+DELAI_CAPTURE_MS = 1500
+
+
+def _taille(texte):
+    """« 800x600 » -> (800, 600)."""
+    try:
+        largeur, hauteur = (int(x) for x in texte.lower().split("x"))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"taille attendue : LARGEURxHAUTEUR (reçu « {texte} »)") from None
+    if largeur <= 0 or hauteur <= 0:
+        raise argparse.ArgumentTypeError("la largeur et la hauteur doivent être positives")
+    return largeur, hauteur
+
+
+def _arguments(argv):
+    p = argparse.ArgumentParser(prog="centre-bazzite-fenetre", description="Health Hub : mises à jour et santé du PC.")
+    p.add_argument("--capture", metavar="PNG", help="enregistre la page dans ce fichier PNG puis quitte")
+    p.add_argument("--page", choices=PAGES, default="accueil", help="page affichée à l'ouverture")
+    p.add_argument("--onglet", metavar="CLE",
+                   help="onglet ouvert de la page (stockage : ensemble, ou le chemin d'un volume comme /var/mnt/DONNEES ; "
+                        "sante : resume, disques, gpu, systeme, controles ou journal)")
+    p.add_argument("--etat", metavar="DOSSIER", help="lit DOSSIER/etat.json au lieu de l'état réel (captures seulement)")
+    p.add_argument("--activite", action="store_true", help="ouvre le panneau Activité à droite de la fenêtre")
+    p.add_argument("--taille", metavar="LxH", type=_taille, help="taille de la fenêtre, par exemple 1000x700")
+    args = p.parse_args(argv)
+    # --etat ne sert qu'aux captures : sans elles, la fenêtre écrirait (résumé, « vu ») dans ce dossier.
+    if args.etat and not args.capture:
+        p.error("--etat n'est permis qu'avec --capture")
+    if args.etat and not Path(args.etat).is_dir():
+        p.error(f"--etat : dossier introuvable : {args.etat}")
+    if args.onglet is not None and args.page not in ONGLETS:
+        p.error(f"--onglet : la page « {args.page} » n'a pas d'onglets ({', '.join(ONGLETS)} en ont)")
+    return args
+
+
+def _capturer(app, fenetre, chemin):
+    image = fenetre.grabWindow()
+    Path(chemin).parent.mkdir(parents=True, exist_ok=True)
+    if not image.save(chemin):
+        print(f"Capture impossible : {chemin}", file=sys.stderr)
+        app.exit(1)
+        return
+    app.exit(0)
+
+
+def main(argv=None):
+    args = _arguments(sys.argv[1:] if argv is None else argv)
+    if not os.environ.get("QT_QUICK_CONTROLS_STYLE"):
+        QQuickStyle.setStyle("org.kde.desktop")
+    app = QApplication(sys.argv[:1])
+    apparence.appliquer(app)        # toujours sombre, même avec un thème de Plasma clair
+    app.setApplicationName(NOM)
+    app.setApplicationDisplayName("Health Hub")
+    app.setDesktopFileName(NOM)
+    app.setWindowIcon(QIcon.fromTheme(NOM))
+
+    pont = Pont(Path(args.etat) / "etat.json", etat_force=True) if args.etat else Pont()
+    moteur = QQmlApplicationEngine()
+    moteur.rootContext().setContextProperty("pont", pont)
+    moteur.rootContext().setContextProperty("pageInitiale", args.page)
+    moteur.load(QUrl.fromLocalFile(str(ICI / "qml" / "Main.qml")))
+    if not moteur.rootObjects():
+        return 1
+    fenetre = moteur.rootObjects()[0]
+    if args.activite:
+        fenetre.setProperty("activiteOuverte", True)
+    if args.onglet is not None:
+        fenetre.setProperty(ONGLETS[args.page], args.onglet)
+    if args.taille:
+        fenetre.setProperty("width", args.taille[0])
+        fenetre.setProperty("height", args.taille[1])
+
+    if args.capture:
+        QTimer.singleShot(DELAI_CAPTURE_MS, lambda: _capturer(app, fenetre, args.capture))
+    else:
+        pont.resumer()
+        app.aboutToQuit.connect(pont.marquerVu)
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Lanceur du bilan hebdomadaire (suit les liens symboliques pour trouver le dossier du code).
+ici="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+exec "$ici/centre-bazzite" bilan "$@"

@@ -1,0 +1,66 @@
+{
+  "compteurs": {
+    "majs": 0,
+    "sante": 0,
+    "stockage": 0
+  },
+  "genere": "2026-11-09T14:58:00",
+  "couleur": "en_cours",
+  "phrase": "Mise à jour en cours…",
+  "phrase2": "Tu peux continuer à utiliser ton PC.",
+  "en_cours": {
+    "debut": "2026-11-09T14:52:00",
+    "fin": null,
+    "eteindre": false,
+    "etapes": {
+      "uupd": {
+        "statut": "fini",
+        "progression": 100,
+        "detail": "Bazzite 45.20261109 installée"
+      },
+      "maj-apps": {
+        "statut": "en_cours",
+        "progression": 40,
+        "detail": "Ollama 0.40"
+      },
+      "notes": {
+        "statut": "attente",
+        "progression": 0,
+        "detail": ""
+      },
+      "resume": {
+        "statut": "attente",
+        "progression": 0,
+        "detail": ""
+      },
+      "etat": {
+        "statut": "attente",
+        "progression": 0,
+        "detail": ""
+      }
+    },
+    "global": 40,
+    "succes": null,
+    "extinction": null,
+    "unite": null
+  },
+  "extinction": null,
+  "extinction_annulee": false,
+  "redemarrage": false,
+  "jeu": null,
+  "depuis_visite": {
+    "depuis": "2026-11-08T09:00:00",
+    "nombre": 0,
+    "chronologie": []
+  },
+  "derniere_maj": null,
+  "sante": {
+    "ssd": [],
+    "volumes": [],
+    "services_en_echec": [],
+    "ollama": null,
+    "erreurs_journal": [],
+    "plantages": []
+  },
+  "points": []
+}

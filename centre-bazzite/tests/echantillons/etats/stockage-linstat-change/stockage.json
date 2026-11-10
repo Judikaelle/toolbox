@@ -1,0 +1,166 @@
+{
+  "genere": "2026-11-09T16:20:19",
+  "disques": [
+    {
+      "id": "nvme0n1",
+      "titre": "Disque interne (NVMe 2 To)",
+      "modele": "NVMe Exemple SSD with Heatsink 2TB",
+      "interne": true,
+      "volumes": [
+        {
+          "nom": "Données",
+          "chemin": "/var/mnt/DONNEES",
+          "fs": "btrfs",
+          "libre_go": 400.0,
+          "total_go": 886.0,
+          "pourcent_utilise": 54.9,
+          "position": "debut",
+          "etat": "ok"
+        },
+        {
+          "nom": "Système",
+          "chemin": "/var",
+          "fs": "ext4",
+          "libre_go": 9.0,
+          "total_go": 70.0,
+          "pourcent_utilise": 87.1,
+          "position": "milieu",
+          "etat": "attention"
+        },
+        {
+          "nom": "Home",
+          "chemin": "/var/home",
+          "fs": "ext4",
+          "libre_go": 300.0,
+          "total_go": 905.0,
+          "pourcent_utilise": 66.9,
+          "position": "fin",
+          "etat": "ok"
+        }
+      ]
+    },
+    {
+      "id": "sda",
+      "titre": "Disque externe (SSD USB)",
+      "modele": "USB Exemple SSD",
+      "interne": false,
+      "volumes": [
+        {
+          "nom": "Externe",
+          "chemin": "/var/mnt/EXTERNE",
+          "fs": "exfat",
+          "libre_go": 150.0,
+          "total_go": 3725.0,
+          "pourcent_utilise": 96.0,
+          "position": null,
+          "etat": "echec"
+        }
+      ]
+    }
+  ],
+  "linstat": {
+    "moteur": false,
+    "commande": "/home/bazzite/.local/share/linstat/linstat.py"
+  },
+  "analyses": {
+    "/var/mnt/DONNEES": null,
+    "/var": {
+      "chemin": "/var",
+      "date": "2026-11-09T15:02:00",
+      "duree_s": 240.0,
+      "total": 21228634112,
+      "total_texte": "20 Go",
+      "fichiers": 199070,
+      "erreurs": 60,
+      "categories": [
+        {
+          "nom": "Programmes & système",
+          "octets": 19465326592,
+          "taille": "18 Go",
+          "nombre": 198644
+        },
+        {
+          "nom": "Autres",
+          "octets": 658501632,
+          "taille": "628 Mo",
+          "nombre": 113
+        },
+        {
+          "nom": "Archives",
+          "octets": 648175616,
+          "taille": "618 Mo",
+          "nombre": 23
+        },
+        {
+          "nom": "Caches",
+          "octets": 391802880,
+          "taille": "374 Mo",
+          "nombre": 141
+        },
+        {
+          "nom": "Données",
+          "octets": 62636032,
+          "taille": "60 Mo",
+          "nombre": 113
+        },
+        {
+          "nom": "Polices",
+          "octets": 1064960,
+          "taille": "1 Mo",
+          "nombre": 3
+        },
+        {
+          "nom": "Images",
+          "octets": 1028096,
+          "taille": "1 Mo",
+          "nombre": 11
+        },
+        {
+          "nom": "Code & dév.",
+          "octets": 98304,
+          "taille": "0 Mo",
+          "nombre": 22
+        }
+      ],
+      "dossiers": [
+        {
+          "nom": "lib",
+          "chemin": "/var/lib",
+          "octets": 20197330944,
+          "taille": "19 Go",
+          "categorie": null
+        },
+        {
+          "nom": "log",
+          "chemin": "/var/log",
+          "octets": 572465152,
+          "taille": "546 Mo",
+          "categorie": null
+        },
+        {
+          "nom": "cache",
+          "chemin": "/var/cache",
+          "octets": 391798784,
+          "taille": "374 Mo",
+          "categorie": "Caches"
+        },
+        {
+          "nom": "usrlocal",
+          "chemin": "/var/usrlocal",
+          "octets": 62316544,
+          "taille": "59 Mo",
+          "categorie": null
+        },
+        {
+          "nom": "sddm_themes",
+          "chemin": "/var/sddm_themes",
+          "octets": 4718592,
+          "taille": "5 Mo",
+          "categorie": null
+        }
+      ]
+    },
+    "/var/home": null,
+    "/var/mnt/EXTERNE": null
+  }
+}

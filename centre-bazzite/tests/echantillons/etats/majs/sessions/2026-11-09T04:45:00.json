@@ -1,0 +1,36 @@
+{
+  "debut": "2026-11-09T04:45:00",
+  "fin": "2026-11-09T05:02:00",
+  "eteindre": false,
+  "etapes": {
+    "uupd": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": "Bazzite 45.20261109 installée"
+    },
+    "maj-apps": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": "2 outils mis à jour"
+    },
+    "notes": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": ""
+    },
+    "resume": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": ""
+    },
+    "etat": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": ""
+    }
+  },
+  "global": 100,
+  "succes": true,
+  "extinction": null,
+  "bilan": "Tout est à jour : système, applications et outils."
+}

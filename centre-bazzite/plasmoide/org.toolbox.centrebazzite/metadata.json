@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Judikaelle"
+            }
+        ],
+        "Category": "System Information",
+        "Description": "Les mises à jour et la santé de ton PC, d'un coup d'œil.",
+        "Icon": "centre-bazzite",
+        "Id": "org.toolbox.centrebazzite",
+        "License": "GPL-3.0-or-later",
+        "Name": "Health Hub",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "SystemServices"
+}

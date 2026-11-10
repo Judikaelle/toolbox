@@ -1,0 +1,13 @@
+{
+ "id": "analyse:/var/home",
+ "type": "analyse",
+ "titre": "Analyse",
+ "statut": "interrompu",
+ "progression": -1,
+ "detail": "Un jeu a démarré : l'analyse reprendra plus tard.",
+ "debut": "2026-11-09T15:30:00",
+ "fin": "2026-11-09T15:31:00",
+ "unite": null,
+ "etapes": [],
+ "journal": []
+}

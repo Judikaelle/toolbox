@@ -1,0 +1,36 @@
+{
+  "debut": "2026-11-08T18:10:00",
+  "fin": "2026-11-08T18:25:00",
+  "eteindre": false,
+  "etapes": {
+    "uupd": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": "2 applications Flatpak mises à jour"
+    },
+    "maj-apps": {
+      "statut": "echec",
+      "progression": 30,
+      "detail": "Ollama : téléchargement impossible"
+    },
+    "notes": {
+      "statut": "reporte",
+      "progression": 0,
+      "detail": "reporté à la prochaine session"
+    },
+    "resume": {
+      "statut": "saute",
+      "progression": 0,
+      "detail": "pas de notes"
+    },
+    "etat": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": ""
+    }
+  },
+  "global": 100,
+  "succes": false,
+  "extinction": null,
+  "bilan": "Une étape a échoué : mise à jour des outils."
+}

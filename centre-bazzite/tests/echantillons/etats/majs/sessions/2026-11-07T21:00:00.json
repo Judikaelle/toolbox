@@ -1,0 +1,36 @@
+{
+  "debut": "2026-11-07T21:00:00",
+  "fin": "2026-11-07T21:20:00",
+  "eteindre": false,
+  "etapes": {
+    "uupd": {
+      "statut": "fini",
+      "progression": 100,
+      "detail": "Rien à faire"
+    },
+    "maj-apps": {
+      "statut": "echec",
+      "progression": 45,
+      "detail": "interrompue"
+    },
+    "notes": {
+      "statut": "saute",
+      "progression": 0,
+      "detail": "session interrompue"
+    },
+    "resume": {
+      "statut": "saute",
+      "progression": 0,
+      "detail": "session interrompue"
+    },
+    "etat": {
+      "statut": "saute",
+      "progression": 0,
+      "detail": "session interrompue"
+    }
+  },
+  "global": 100,
+  "succes": false,
+  "extinction": null,
+  "bilan": "Session interrompue avant la fin."
+}

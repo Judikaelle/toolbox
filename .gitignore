@@ -1,0 +1,8 @@
+# maquettes et état des sessions de conception
+.superpowers/
+__pycache__/
+*.pyc
+
+# notes et audit personnels du PC : gardés en local, jamais publiés
+research_notes/
+reports/

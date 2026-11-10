@@ -1,0 +1,436 @@
+{
+ "genere": "2026-11-10T10:31:53",
+ "couleur": "rouge",
+ "phrase": "Une mise à jour a échoué.",
+ "phrase2": "2 choses méritent un coup d'œil.",
+ "en_cours": null,
+ "extinction": null,
+ "extinction_annulee": false,
+ "redemarrage": false,
+ "jeu": null,
+ "depuis_visite": {
+  "depuis": "2026-11-09T23:15:37",
+  "nombre": 3,
+  "chronologie": [
+   {
+    "heure": "2026-11-10T09:23:45",
+    "titre": "1 application",
+    "categorie": "applications",
+    "changements": [
+     {
+      "categorie": "applications",
+      "id": "org.libreoffice.LibreOffice",
+      "nom": "org.libreoffice.LibreOffice",
+      "de": "1.0.168",
+      "vers": "1.0.169"
+     }
+    ]
+   },
+   {
+    "heure": "2026-11-10T09:40:22",
+    "titre": "Linstat 8b72fa5",
+    "categorie": "outils",
+    "changements": [
+     {
+      "categorie": "outils",
+      "id": "linstat",
+      "nom": "Linstat",
+      "de": "b2cff95",
+      "vers": "8b72fa5",
+      "heure": "2026-11-10T09:40:22"
+     }
+    ]
+   },
+   {
+    "heure": "2026-11-10T09:40:22",
+    "titre": "Ollama 0.40.16",
+    "categorie": "outils",
+    "changements": [
+     {
+      "categorie": "outils",
+      "id": "ollama",
+      "nom": "Ollama",
+      "de": "0.40.15",
+      "vers": "0.40.16",
+      "heure": "2026-11-10T09:40:22"
+     }
+    ]
+   }
+  ]
+ },
+ "derniere_maj": null,
+ "sante": {
+  "ssd": [
+   {
+    "modele": "USB Exemple SSD",
+    "bus": "usb",
+    "peripherique": "/dev/sda",
+    "sante": null
+   },
+   {
+    "modele": "NVMe Exemple SSD with Heatsink 2TB",
+    "bus": "nvme",
+    "peripherique": "/dev/nvme0n1",
+    "sante": {
+     "usure": 1,
+     "reserve": 100,
+     "seuil_reserve": 10,
+     "temperature": 34.85,
+     "erreurs_media": 0,
+     "arrets_brutaux": 49,
+     "heures": 2858,
+     "ecrit_to": 21.794116608,
+     "avertissements": []
+    }
+   }
+  ],
+  "temperatures": {
+   "cpu": 74.0,
+   "ssd": 34.85
+  },
+  "gpu": {
+   "nom": "NVIDIA GeForce RTX 4070",
+   "temperature": 38,
+   "watts": 42.51,
+   "vram_utilisee_go": 1.26,
+   "vram_totale_go": 15.92
+  },
+  "volumes": [
+   {
+    "nom": "Système",
+    "chemin": "/var",
+    "libre_go": 9.7,
+    "total_go": 68.4,
+    "pourcent_utilise": 85.9
+   },
+   {
+    "nom": "Home",
+    "chemin": "/var/home",
+    "libre_go": 548.7,
+    "total_go": 890.2,
+    "pourcent_utilise": 38.4
+   },
+   {
+    "nom": "Données",
+    "chemin": "/var/mnt/DONNEES",
+    "libre_go": 238.3,
+    "total_go": 886.5,
+    "pourcent_utilise": 73.1
+   },
+   {
+    "nom": "Externe",
+    "chemin": "/var/mnt/EXTERNE",
+    "libre_go": 353.2,
+    "total_go": 3725.9,
+    "pourcent_utilise": 90.5
+   }
+  ],
+  "services_en_echec": [
+   "maj-apps.service"
+  ],
+  "erreurs_journal": [
+   {
+    "message": "Failed to open '/boot/loader/entries': Too many levels of symbolic links",
+    "source": "systemd-logind",
+    "nombre": 2
+   },
+   {
+    "message": "Bootup is not yet finished (org.freedesktop.systemd1.Manager.FinishTimestampMonotonic=0).",
+    "source": "systemd-analyze",
+    "nombre": 2
+   },
+   {
+    "message": "Please try again later.",
+    "source": "systemd-analyze",
+    "nombre": 2
+   },
+   {
+    "message": "Hint: Use 'systemctl list-jobs' to see active jobs",
+    "source": "systemd-analyze",
+    "nombre": 2
+   },
+   {
+    "message": "failed to query container image base metadata: Reading manifest data from commit: Missing ostree.manifest-digest metadata on merge commit",
+    "source": "rpm-ostree",
+    "nombre": 2
+   },
+   {
+    "message": "virt/tdx: TDX not supported by the host platform",
+    "source": "kernel",
+    "nombre": 1
+   },
+   {
+    "message": "i2c i2c-1: Invalid 7-bit I2C address 0xffff",
+    "source": "kernel",
+    "nombre": 1
+   },
+   {
+    "message": "'/usr/lib/systemd/system-generators/dracut-crypt-generator' failed with exit status 2.",
+    "source": "(gene",
+    "nombre": 1
+   },
+   {
+    "message": "/usr/lib/tmpfiles.d/static-nodes-permissions.conf:12: Failed to resolve group 'audio': Unknown group",
+    "source": "systemd-tmpfiles",
+    "nombre": 1
+   },
+   {
+    "message": "/usr/lib/tmpfiles.d/static-nodes-permissions.conf:13: Failed to resolve group 'audio': Unknown group",
+    "source": "systemd-tmpfiles",
+    "nombre": 1
+   }
+  ],
+  "plantages": [
+   {
+    "exe": "wine64-preloader",
+    "signal": 3,
+    "date": "2026-11-06T17:11:10"
+   },
+   {
+    "exe": "foreground_booster",
+    "signal": 6,
+    "date": "2026-11-06T17:55:59"
+   },
+   {
+    "exe": "foreground_booster",
+    "signal": 6,
+    "date": "2026-11-07T10:17:40"
+   },
+   {
+    "exe": "foreground_booster",
+    "signal": 6,
+    "date": "2026-11-08T10:37:19"
+   },
+   {
+    "exe": "vicinae",
+    "signal": 11,
+    "date": "2026-11-08T22:12:47"
+   },
+   {
+    "exe": "foreground_booster",
+    "signal": 6,
+    "date": "2026-11-09T11:17:05"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:02:13"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:02:35"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:02:49"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:16:07"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:16:30"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:16:53"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:17:24"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:17:33"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:18:07"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:18:13"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:18:15"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:18:21"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:19:07"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:29:20"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:36:53"
+   },
+   {
+    "exe": "python3.15",
+    "signal": 6,
+    "date": "2026-11-09T17:38:45"
+   },
+   {
+    "exe": "foreground_booster",
+    "signal": 6,
+    "date": "2026-11-10T09:21:50"
+   }
+  ],
+  "bilan_hebdo": {
+   "date": "2026-11-10T10:20:30",
+   "points": [
+    {
+     "niveau": "alerte",
+     "titre": "La mise à jour des outils (maj-apps) a échoué",
+     "details": "Échec le 10 novembre à 9 h 40. En échec : distrobox. Le rapport : maj-apps --report. Le prochain passage la retentera."
+    },
+    {
+     "niveau": "attention",
+     "titre": "Le service maj-apps.service est en échec",
+     "details": "Regarde pourquoi : systemctl status maj-apps.service  (puis journalctl -u maj-apps.service)."
+    }
+   ],
+   "semaine": {
+    "du": "2026-11-03T10:20:30",
+    "au": "2026-11-10T10:20:30",
+    "changements": 19,
+    "sessions": 2,
+    "echecs": 0
+   }
+  },
+  "gels": {
+   "nombre": 9,
+   "dernier": "20260921-194442-GEL-JeuDeCourse.ex.txt"
+  },
+  "ollama": {
+   "actif": false,
+   "depuis": null,
+   "modeles_charges": []
+  },
+  "controles": {
+   "date": "2026-11-10T10:20:25",
+   "image": {
+    "disponible": null
+   },
+   "flatpak": {
+    "a_mettre_a_jour": []
+   },
+   "runtimes": {
+    "inutilises": [],
+    "gl_obsoletes": []
+   },
+   "telechargements": [],
+   "caches": {
+    "miniatures": 6012928,
+    "corbeille": 8192,
+    "journal": 577241088
+   },
+   "boot": {
+    "nom": "Démarrage",
+    "chemin": "/boot",
+    "libre_go": 0.64,
+    "total_go": 0.95,
+    "pourcent_utilise": 32.8
+   }
+  },
+  "erreurs_disque": {
+   "nombre": 0,
+   "exemples": []
+  },
+  "non_montes": [],
+  "attendus": [
+   {
+    "nom": "Données",
+    "chemin": "/var/mnt/DONNEES"
+   }
+  ]
+ },
+ "points": [
+  {
+   "id": "maj:echec:maj-apps:2026-11-10T09:40:22",
+   "gravite": "echec",
+   "titre": "La mise à jour des outils (maj-apps) a échoué",
+   "detail": "Échec le 10 novembre à 9 h 40. En échec : distrobox. Le rapport : maj-apps --report. Le prochain passage la retentera.",
+   "mesure": 0.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "majs",
+   "domaine": "systeme"
+  },
+  {
+   "id": "volume:/var/mnt/EXTERNE",
+   "gravite": "attention",
+   "titre": "Externe : plus que 353 Go libres",
+   "detail": "Il reste 353 Go libres sur 3 726 Go. Libère de la place avant que les mises à jour ou les jeux échouent.",
+   "mesure": 90.5,
+   "cran": 3.0,
+   "action": null,
+   "en_sourdine": true,
+   "rubrique": "stockage",
+   "domaine": "disques"
+  },
+  {
+   "id": "service:maj-apps.service",
+   "gravite": "attention",
+   "titre": "Le service maj-apps.service est en échec",
+   "detail": "Regarde pourquoi : systemctl status maj-apps.service  (puis journalctl -u maj-apps.service).",
+   "mesure": 0.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "sante",
+   "domaine": "systeme"
+  },
+  {
+   "id": "journal:erreurs",
+   "gravite": "info",
+   "titre": "15 erreur(s) dans le journal système",
+   "detail": "Rien d'urgent ; consulte-les avec : journalctl -p err -b",
+   "mesure": 15.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "sante",
+   "domaine": "journal"
+  },
+  {
+   "id": "plantages",
+   "gravite": "info",
+   "titre": "23 plantage(s) récent(s)",
+   "detail": "Liste complète avec : coredumpctl list",
+   "mesure": 23.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "sante",
+   "domaine": "journal"
+  }
+ ],
+ "compteurs": {
+  "majs": 1,
+  "sante": 1,
+  "stockage": 0
+ }
+}

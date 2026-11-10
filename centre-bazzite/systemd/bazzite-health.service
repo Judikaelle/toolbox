@@ -1,0 +1,10 @@
+[Unit]
+Description=Health Hub : bilan hebdomadaire
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/bazzite-health
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle

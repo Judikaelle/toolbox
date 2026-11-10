@@ -1,0 +1,12 @@
+Enabled rpm-md repositories: fedora updates updates-archive
+Updating metadata for 'fedora'...done
+Updating metadata for 'updates'...done
+Updating metadata for 'updates-archive'...done
+Importing rpm-md...done
+rpm-md repo 'fedora'; generated: 2026-10-30T08:28:54Z solvables: 75855
+rpm-md repo 'updates'; generated: 2026-11-09T01:02:24Z solvables: 8903
+rpm-md repo 'updates-archive'; generated: 2026-11-07T01:48:45Z solvables: 6772
+Note: --check and --preview may be unreliable.  See https://github.com/coreos/rpm-ostree/issues/1579
+AvailableUpdate:
+        Version: 45.20261110 (2026-11-10T04:12:33Z)
+         Digest: sha256:4b8f0c2e7a91d3c5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d

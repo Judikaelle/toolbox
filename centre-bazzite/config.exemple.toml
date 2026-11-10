@@ -1,0 +1,79 @@
+# Health Hub : configuration locale, propre à ton PC.
+#
+# Copie ce fichier en ~/.config/health-hub/config.toml (install.sh le fait s'il n'existe pas encore), puis décommente
+# et adapte ce qui te concerne. Tel quel, il ne change rien : ce sont les valeurs par défaut. Le fichier est relu à
+# chaque relevé ; s'il est illisible, Health Hub garde les valeurs par défaut et l'écrit dans son journal.
+# Les noms et chemins ci-dessous sont des exemples.
+
+# --- Volumes suivis (santé, page Stockage, analyses) ---
+# Par défaut : Système (/var) et Home (/var/home). Une entrée de même chemin les renomme ; les autres s'ajoutent.
+#   nom        : le nom affiché
+#   chemin     : le point de montage
+#   attendu    : true si le volume doit toujours être monté (sinon le point « … n'est pas monté », en échec)
+#   facultatif : true s'il peut être débranché sans que rien soit signalé (l'emporte sur attendu)
+#
+# [[volumes]]
+# nom = "Données"
+# chemin = "/var/mnt/DONNEES"
+# attendu = true
+#
+# [[volumes]]
+# nom = "Externe"
+# chemin = "/var/mnt/EXTERNE"
+# facultatif = true
+
+# --- maj-apps : AppImages suivies (aucune par défaut) ---
+# Chaque AppImage est remplacée par la dernière release GitHub (somme SHA-256 vérifiée), l'ancienne gardée en .ancien,
+# jamais pendant qu'elle tourne.
+#   cle           : identifiant dans l'état de maj-apps
+#   nom           : nom affiché (par défaut : cle)
+#   depot         : dépôt GitHub « propriétaire/projet »
+#   motif_asset   : expression régulière du fichier à télécharger dans la release (entre apostrophes : pas d'échappement)
+#   dossier       : dossier de l'AppImage (~ ou relatif = dans ton dossier personnel)
+#   fichier       : nom fixe du fichier installé (remplacé sur place)…
+#   motif_fichier : … ou motif glob, si le nom porte la version (le nouveau fichier prend le nom de la release)
+#   desktop       : fichiers .desktop dont les lignes Exec= pointent vers l'AppImage (réécrites si son nom change)
+#
+# [[majapps.appimages]]
+# cle = "editeur"
+# nom = "Éditeur"
+# depot = "exemple/editeur"
+# motif_asset = 'Editeur-.*-x86_64\.AppImage'
+# dossier = "~/Applications"
+# motif_fichier = "Editeur-*-x86_64.AppImage"
+# desktop = ["~/.local/share/applications/editeur.desktop"]
+
+# --- maj-apps : conteneurs distrobox ---
+#   exclure : conteneurs jamais mis à jour automatiquement, avec la raison affichée dans le rapport
+#   applis  : conteneurs dont la mise à jour attend que leur appli soit fermée : ["processus", "Nom affiché"]
+#             (le nom du processus tel que /proc/<pid>/comm l'écrit)
+#
+# [majapps.distrobox]
+# exclure = { build-stable = "chaîne de compilation, gardée stable" }
+# applis = { messagerie = ["messagerie", "Messagerie"] }
+
+# --- Page Stockage : « Optimiser mes disques » ---
+# Les options A (présenter les volumes par disque) et C (soulager la partition Système) sont toujours là. Les options B
+# et D n'apparaissent que si elles sont configurées ici.
+#   recommandation : la phrase sous les options (par défaut, écrite d'après les options présentes)
+#   idee           : une note libre, en petit sous la recommandation
+#   fusionner      : option D, deux volumes (par leur nom) qu'on aimerait fusionner un jour
+#   [optimiser.liberer] : option B, un disque externe qu'on pourrait libérer
+#     volume  : son nom (celui de [[volumes]])
+#     phrase  : une phrase libre avant ses chiffres (facultative)
+#     conseil : ce qu'il faut vérifier avant (facultatif)
+#
+# [optimiser]
+# idee = "Idée : regrouper un jour Données et Home."
+# fusionner = ["Données", "Home"]
+#
+# [optimiser.liberer]
+# volume = "Externe"
+# phrase = "Ce disque ne sert plus qu'aux archives."
+# conseil = "Si elles existent déjà ailleurs, ce disque peut être effacé ou réaffecté."
+
+# --- Résumé des notes de version (Ollama) ---
+# Qui lit les résumés : « Tu résumes des notes de version pour <contexte>. »
+#
+# [resume]
+# contexte = "l'utilisateur, sous Bazzite (KDE Plasma, Wayland)"

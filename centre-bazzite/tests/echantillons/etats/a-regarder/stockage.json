@@ -1,0 +1,560 @@
+{
+  "genere": "2026-11-09T16:20:19",
+  "disques": [
+    {
+      "id": "nvme0n1",
+      "titre": "Disque interne (NVMe 2 To)",
+      "modele": "NVMe Exemple SSD with Heatsink 2TB",
+      "interne": true,
+      "volumes": [
+        {
+          "nom": "Système",
+          "chemin": "/var",
+          "fs": "ext4",
+          "libre_go": 9.0,
+          "total_go": 70.0,
+          "pourcent_utilise": 87.1,
+          "position": "milieu",
+          "etat": "attention"
+        },
+        {
+          "nom": "Home",
+          "chemin": "/var/home",
+          "fs": "ext4",
+          "libre_go": 300.0,
+          "total_go": 905.0,
+          "pourcent_utilise": 66.9,
+          "position": "fin",
+          "etat": "ok"
+        }
+      ]
+    },
+    {
+      "id": "sda",
+      "titre": "Disque externe (SSD USB)",
+      "modele": "USB Exemple SSD",
+      "interne": false,
+      "volumes": [
+        {
+          "nom": "Externe",
+          "chemin": "/var/mnt/EXTERNE",
+          "fs": "exfat",
+          "libre_go": 150.0,
+          "total_go": 3725.0,
+          "pourcent_utilise": 96.0,
+          "position": null,
+          "etat": "echec"
+        }
+      ]
+    }
+  ],
+  "linstat": {
+    "moteur": true,
+    "commande": "/home/bazzite/.local/share/linstat/linstat.py"
+  },
+  "analyses": {
+    "/var": {
+      "chemin": "/var",
+      "date": "2026-11-09T15:02:00",
+      "duree_s": 240.0,
+      "total": 21228634112,
+      "total_texte": "20 Go",
+      "fichiers": 199070,
+      "erreurs": 60,
+      "categories": [
+        {
+          "nom": "Programmes & système",
+          "octets": 19465326592,
+          "taille": "18 Go",
+          "nombre": 198644
+        },
+        {
+          "nom": "Autres",
+          "octets": 658501632,
+          "taille": "628 Mo",
+          "nombre": 113
+        },
+        {
+          "nom": "Archives",
+          "octets": 648175616,
+          "taille": "618 Mo",
+          "nombre": 23
+        },
+        {
+          "nom": "Caches",
+          "octets": 391802880,
+          "taille": "374 Mo",
+          "nombre": 141
+        },
+        {
+          "nom": "Données",
+          "octets": 62636032,
+          "taille": "60 Mo",
+          "nombre": 113
+        },
+        {
+          "nom": "Polices",
+          "octets": 1064960,
+          "taille": "1 Mo",
+          "nombre": 3
+        },
+        {
+          "nom": "Images",
+          "octets": 1028096,
+          "taille": "1 Mo",
+          "nombre": 11
+        },
+        {
+          "nom": "Code & dév.",
+          "octets": 98304,
+          "taille": "0 Mo",
+          "nombre": 22
+        }
+      ],
+      "dossiers": [
+        {
+          "nom": "lib",
+          "chemin": "/var/lib",
+          "octets": 20197330944,
+          "taille": "19 Go",
+          "categorie": null
+        },
+        {
+          "nom": "log",
+          "chemin": "/var/log",
+          "octets": 572465152,
+          "taille": "546 Mo",
+          "categorie": null
+        },
+        {
+          "nom": "cache",
+          "chemin": "/var/cache",
+          "octets": 391798784,
+          "taille": "374 Mo",
+          "categorie": "Caches"
+        },
+        {
+          "nom": "usrlocal",
+          "chemin": "/var/usrlocal",
+          "octets": 62316544,
+          "taille": "59 Mo",
+          "categorie": null
+        },
+        {
+          "nom": "sddm_themes",
+          "chemin": "/var/sddm_themes",
+          "octets": 4718592,
+          "taille": "5 Mo",
+          "categorie": null
+        }
+      ]
+    },
+    "/var/home": null,
+    "/var/mnt/EXTERNE": null
+  },
+  "recommandations": [
+    {
+      "id": "caches",
+      "titre": "Caches régénérables",
+      "explication": "Supprimés définitivement : les programmes les recréent au besoin.",
+      "octets": 7731402506,
+      "taille": "7,2 Go",
+      "mode": "supprimer",
+      "elements": [
+        {
+          "cible": "/var/home/bazzite/.npm/_cacache",
+          "libelle": "npm",
+          "octets": 3639984783,
+          "taille": "3,4 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/.cache/pip",
+          "libelle": "pip",
+          "octets": 1621350154,
+          "taille": "1,5 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/.cache/Homebrew",
+          "libelle": "Homebrew",
+          "octets": 1460288881,
+          "taille": "1,4 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/.cache/ms-playwright",
+          "libelle": "Playwright",
+          "octets": 1003487232,
+          "taille": "957 Mo"
+        },
+        {
+          "cible": "/var/home/bazzite/.cache/thumbnails",
+          "libelle": "Miniatures",
+          "octets": 6291456,
+          "taille": "6 Mo"
+        }
+      ],
+      "a_copier": null,
+      "remarque": null
+    },
+    {
+      "id": "corbeille",
+      "titre": "Corbeille",
+      "explication": "Vidée définitivement, sur tous les disques.",
+      "octets": 3145728,
+      "taille": "3 Mo",
+      "mode": "corbeille",
+      "elements": [
+        {
+          "cible": "trash:///photo.jpg",
+          "libelle": "/var/home/bazzite/Images/photo.jpg",
+          "octets": 3145728,
+          "taille": "3 Mo"
+        }
+      ],
+      "a_copier": null,
+      "remarque": null
+    },
+    {
+      "id": "telechargements",
+      "titre": "Téléchargements de plus de 90 jours",
+      "explication": "Envoyés à la corbeille : tu peux encore les récupérer.",
+      "octets": 19818086400,
+      "taille": "18 Go",
+      "mode": "corbeille",
+      "elements": [
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-00.zip",
+          "libelle": "fichier-00.zip",
+          "octets": 2097152000,
+          "taille": "2,0 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-01.zip",
+          "libelle": "fichier-01.zip",
+          "octets": 1992294400,
+          "taille": "1,9 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-02.zip",
+          "libelle": "fichier-02.zip",
+          "octets": 1887436800,
+          "taille": "1,8 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-03.zip",
+          "libelle": "fichier-03.zip",
+          "octets": 1782579200,
+          "taille": "1,7 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-04.zip",
+          "libelle": "fichier-04.zip",
+          "octets": 1677721600,
+          "taille": "1,6 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-05.zip",
+          "libelle": "fichier-05.zip",
+          "octets": 1572864000,
+          "taille": "1,5 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-06.zip",
+          "libelle": "fichier-06.zip",
+          "octets": 1468006400,
+          "taille": "1,4 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-07.zip",
+          "libelle": "fichier-07.zip",
+          "octets": 1363148800,
+          "taille": "1,3 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-08.zip",
+          "libelle": "fichier-08.zip",
+          "octets": 1258291200,
+          "taille": "1,2 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-09.zip",
+          "libelle": "fichier-09.zip",
+          "octets": 1153433600,
+          "taille": "1,1 Go"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-10.zip",
+          "libelle": "fichier-10.zip",
+          "octets": 1048576000,
+          "taille": "1000 Mo"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-11.zip",
+          "libelle": "fichier-11.zip",
+          "octets": 943718400,
+          "taille": "900 Mo"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-12.zip",
+          "libelle": "fichier-12.zip",
+          "octets": 838860800,
+          "taille": "800 Mo"
+        },
+        {
+          "cible": "/var/home/bazzite/Téléchargements/fichier-13.zip",
+          "libelle": "fichier-13.zip",
+          "octets": 734003200,
+          "taille": "700 Mo"
+        }
+      ],
+      "a_copier": null,
+      "remarque": "2 sauvegardes de jeux probables sont laissées de côté."
+    },
+    {
+      "id": "runtimes",
+      "titre": "Runtimes Flatpak inutilisés",
+      "explication": "Désinstallés : seulement ceux listés ici, s'ils sont toujours inutilisés.",
+      "octets": 974300000,
+      "taille": "929 Mo",
+      "mode": "commande",
+      "elements": [
+        {
+          "cible": "runtime/org.kde.Platform/x86_64/6.10",
+          "libelle": "org.kde.Platform 6.10",
+          "octets": 974300000,
+          "taille": "929 Mo"
+        }
+      ],
+      "a_copier": "flatpak uninstall runtime/org.freedesktop.Platform.GL.nvidia-580-95-05/x86_64/1.4",
+      "remarque": null
+    },
+    {
+      "id": "proton",
+      "titre": "Versions de Proton inutilisées",
+      "explication": "Supprimées définitivement ; ProtonPlus peut les réinstaller.",
+      "octets": 1258291200,
+      "taille": "1,2 Go",
+      "mode": "supprimer",
+      "elements": [
+        {
+          "cible": "/var/home/bazzite/.local/share/Steam/compatibilitytools.d/GE-Proton10-25",
+          "libelle": "GE-Proton10-25",
+          "octets": 1258291200,
+          "taille": "1,2 Go"
+        }
+      ],
+      "a_copier": null,
+      "remarque": null
+    },
+    {
+      "id": "journal",
+      "titre": "Journal système",
+      "explication": "Commande à lancer toi-même dans un terminal (elle demande ton mot de passe).",
+      "octets": 1073741824,
+      "taille": "1,0 Go",
+      "mode": "copier",
+      "elements": [
+        {
+          "cible": "journal",
+          "libelle": "Journal système",
+          "octets": 1073741824,
+          "taille": "1,0 Go"
+        }
+      ],
+      "a_copier": "sudo journalctl --vacuum-size=500M",
+      "remarque": null
+    }
+  ],
+  "optimiser": {
+    "options": [
+      {
+        "id": "A",
+        "titre": "Garder les volumes, mais les présenter par disque physique",
+        "etat": "fait",
+        "badge": "En place",
+        "texte": "C'est ce que tu vois ici : 2 disques physiques, 4 volumes. Sans risque.",
+        "commandes": null,
+        "applis": []
+      },
+      {
+        "id": "B",
+        "titre": "Libérer le SSD externe",
+        "etat": "a_decider",
+        "badge": "À décider",
+        "texte": "Ce disque ne sert plus qu'aux archives. Externe a 150 Go libres sur 3725 Go. Si elles existent déjà ailleurs, ce disque peut être effacé, réaffecté ou débranché. Vérifie-le d'abord : Health Hub n'efface rien.",
+        "commandes": null,
+        "applis": []
+      },
+      {
+        "id": "C",
+        "titre": "Soulager la partition Système",
+        "etat": "possible",
+        "badge": "Possible : 6,9 Go à déplacer",
+        "texte": "Système n'a que 9 Go libres sur 70 Go : c'est le vrai goulot. Les applis Flatpak installées pour tout le système occupent environ 954 Mo dans /var. Les réinstaller pour ton seul utilisateur les place dans Home (300 Go libres), appli par appli, sans repartitionner. Tes réglages (~/.var/app) ne bougent pas.",
+        "commandes": "flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\nflatpak install --user -y flathub org.darktable.Darktable\nflatpak uninstall --system -y org.darktable.Darktable\nflatpak install --user -y flathub org.kde.digikam\nflatpak uninstall --system -y org.kde.digikam\nflatpak install --user -y flathub org.gnome.Builder\nflatpak uninstall --system -y org.gnome.Builder\nflatpak install --user -y flathub org.freecad.FreeCAD\nflatpak uninstall --system -y org.freecad.FreeCAD\nflatpak install --user -y flathub org.inkscape.Inkscape\nflatpak uninstall --system -y org.inkscape.Inkscape\nflatpak install --user -y flathub org.libreoffice.LibreOffice\nflatpak uninstall --system -y org.libreoffice.LibreOffice\nflatpak install --user -y flathub org.kde.kdenlive\nflatpak uninstall --system -y org.kde.kdenlive\nflatpak install --user -y flathub org.mozilla.Thunderbird\nflatpak uninstall --system -y org.mozilla.Thunderbird\nflatpak install --user -y flathub org.kde.kstars\nflatpak uninstall --system -y org.kde.kstars\nflatpak install --user -y flathub org.gimp.GIMP\nflatpak uninstall --system -y org.gimp.GIMP\nflatpak install --user -y flathub org.gnome.Rhythmbox3\nflatpak uninstall --system -y org.gnome.Rhythmbox3\nflatpak install --user -y flathub org.gnome.Totem\nflatpak uninstall --system -y org.gnome.Totem\nflatpak install --user -y flathub org.gnome.Maps\nflatpak uninstall --system -y org.gnome.Maps\nflatpak install --user -y flathub org.gnome.Chess\nflatpak uninstall --system -y org.gnome.Chess\nflatpak install --user -y flathub org.gnome.Calendar\nflatpak uninstall --system -y org.gnome.Calendar\nflatpak install --user -y flathub org.kde.okular\nflatpak uninstall --system -y org.kde.okular\nflatpak install --user -y flathub org.gnome.Boxes\nflatpak uninstall --system -y org.gnome.Boxes\nflatpak install --user -y flathub org.kde.kate\nflatpak uninstall --system -y org.kde.kate\nflatpak install --user -y flathub org.gnome.TextEditor\nflatpak uninstall --system -y org.gnome.TextEditor\nflatpak install --user -y flathub org.gnome.Characters\nflatpak uninstall --system -y org.gnome.Characters\nflatpak install --user -y flathub org.kde.kcalc\nflatpak uninstall --system -y org.kde.kcalc\nflatpak install --user -y flathub org.gnome.clocks\nflatpak uninstall --system -y org.gnome.clocks\nflatpak install --user -y flathub org.gnome.Weather\nflatpak uninstall --system -y org.gnome.Weather\nflatpak install --user -y flathub org.gnome.Logs\nflatpak uninstall --system -y org.gnome.Logs\nflatpak install --user -y flathub org.gnome.Calculator\nflatpak uninstall --system -y org.gnome.Calculator\nflatpak uninstall --system --unused -y",
+        "applis": [
+          {
+            "id": "org.darktable.Darktable",
+            "nom": "darktable",
+            "octets": 1100000000,
+            "taille": "1,0 Go"
+          },
+          {
+            "id": "org.kde.digikam",
+            "nom": "digiKam",
+            "octets": 998400000,
+            "taille": "952 Mo"
+          },
+          {
+            "id": "org.gnome.Builder",
+            "nom": "Builder",
+            "octets": 753100000,
+            "taille": "718 Mo"
+          },
+          {
+            "id": "org.freecad.FreeCAD",
+            "nom": "FreeCAD",
+            "octets": 745900000,
+            "taille": "711 Mo"
+          },
+          {
+            "id": "org.inkscape.Inkscape",
+            "nom": "Inkscape",
+            "octets": 623300000,
+            "taille": "594 Mo"
+          },
+          {
+            "id": "org.libreoffice.LibreOffice",
+            "nom": "LibreOffice",
+            "octets": 596200000,
+            "taille": "569 Mo"
+          },
+          {
+            "id": "org.kde.kdenlive",
+            "nom": "Kdenlive",
+            "octets": 537500000,
+            "taille": "513 Mo"
+          },
+          {
+            "id": "org.mozilla.Thunderbird",
+            "nom": "Thunderbird",
+            "octets": 436600000,
+            "taille": "416 Mo"
+          },
+          {
+            "id": "org.kde.kstars",
+            "nom": "KStars",
+            "octets": 427900000,
+            "taille": "408 Mo"
+          },
+          {
+            "id": "org.gimp.GIMP",
+            "nom": "GIMP",
+            "octets": 394300000,
+            "taille": "376 Mo"
+          },
+          {
+            "id": "org.gnome.Rhythmbox3",
+            "nom": "Rhythmbox",
+            "octets": 149600000,
+            "taille": "143 Mo"
+          },
+          {
+            "id": "org.gnome.Totem",
+            "nom": "Videos",
+            "octets": 133500000,
+            "taille": "127 Mo"
+          },
+          {
+            "id": "org.gnome.Maps",
+            "nom": "Maps",
+            "octets": 91600000,
+            "taille": "87 Mo"
+          },
+          {
+            "id": "org.gnome.Chess",
+            "nom": "Chess",
+            "octets": 83400000,
+            "taille": "80 Mo"
+          },
+          {
+            "id": "org.gnome.Calendar",
+            "nom": "Calendar",
+            "octets": 69200000,
+            "taille": "66 Mo"
+          },
+          {
+            "id": "org.kde.okular",
+            "nom": "Okular",
+            "octets": 60800000,
+            "taille": "58 Mo"
+          },
+          {
+            "id": "org.gnome.Boxes",
+            "nom": "Boxes",
+            "octets": 58200000,
+            "taille": "56 Mo"
+          },
+          {
+            "id": "org.kde.kate",
+            "nom": "Kate",
+            "octets": 25600000,
+            "taille": "24 Mo"
+          },
+          {
+            "id": "org.gnome.TextEditor",
+            "nom": "Text Editor",
+            "octets": 23100000,
+            "taille": "22 Mo"
+          },
+          {
+            "id": "org.gnome.Characters",
+            "nom": "Characters",
+            "octets": 20300000,
+            "taille": "19 Mo"
+          },
+          {
+            "id": "org.kde.kcalc",
+            "nom": "KCalc",
+            "octets": 19300000,
+            "taille": "18 Mo"
+          },
+          {
+            "id": "org.gnome.clocks",
+            "nom": "Clocks",
+            "octets": 14100000,
+            "taille": "13 Mo"
+          },
+          {
+            "id": "org.gnome.Weather",
+            "nom": "Weather",
+            "octets": 5000000,
+            "taille": "5 Mo"
+          },
+          {
+            "id": "org.gnome.Logs",
+            "nom": "Logs",
+            "octets": 4700000,
+            "taille": "4 Mo"
+          },
+          {
+            "id": "org.gnome.Calculator",
+            "nom": "Calculator",
+            "octets": 1400000,
+            "taille": "1 Mo"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "titre": "Fusionner Données et Home en un seul volume",
+        "etat": "plus_tard",
+        "badge": "Ton idée — plus tard",
+        "texte": "Impossible sur place : Données est au début du disque, Home à la fin, et ext4 ne s'agrandit pas vers l'avant. Il faut sauvegarder, démarrer sur une clé USB, puis déplacer et redimensionner avec GParted. C'est long et risqué. Health Hub ne repartitionne jamais : il préparera un pas-à-pas quand tu le décideras.",
+        "commandes": null,
+        "applis": []
+      }
+    ],
+    "recommandation": "Recommandation : A tout de suite, puis C ; B si son contenu existe ailleurs ; D seulement si tu y tiens vraiment.",
+    "idee": "Ton idée (1er novembre) : fusionner des disques. On en reparlera."
+  }
+}

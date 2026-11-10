@@ -1,0 +1,15 @@
+ostree diff commit from: rollback deployment (49fb32118d4f33778cb180a63e7634a6148280b3b00232445bb754cbac00b3e3)
+ostree diff commit to:   booted deployment (281bb98e9d15941c393b3deb87287645df84cfa2e9e4c044859e7b5a85e121c7)
+Removed:
+  containerd-2.4.2-1.fc45.x86_64
+  docker-buildx-0.38.1-1.fc45.x86_64
+  docker-cli-29.9.2-2.fc45.x86_64
+  libpathrs-0.2.6-1.fc45.x86_64
+  moby-engine-29.9.2-2.fc45.x86_64
+  moby-engine-nano-29.9.2-2.fc45.noarch
+  moby-engine-rootless-extras-29.9.2-2.fc45.noarch
+  moby-filesystem-29.9.2-2.fc45.noarch
+  pigz-2.8-11.fc45.x86_64
+  rootlesskit-3.3.0-1.fc45.x86_64
+  runc-2:1.5.2-3.fc45.x86_64
+  tini-static-0.19.0-12.fc44.x86_64

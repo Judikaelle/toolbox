@@ -1,0 +1,5 @@
+kernel 7.2.15
+nvidia-driver 615.78.08
+plasma-workspace 6.8.2
+mesa-dri-drivers 26.2.6
+mesa-dri-drivers 26.2.6

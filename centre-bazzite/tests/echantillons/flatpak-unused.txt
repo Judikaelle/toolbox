@@ -1,0 +1,12 @@
+
+These runtimes in installation 'system' are pinned and won't be removed; see flatpak-pin(1):
+  runtime/org.freedesktop.Platform.GL.nvidia-615-78-08/x86_64/1.4
+  runtime/org.freedesktop.Platform.GL32.nvidia-615-78-08/x86_64/1.4
+
+
+        ID                                                  Branch       Op
+ 1.	   	org.kde.Platform	6.10	r
+ 2.	   	org.gnome.Platform	49	r
+ 3.	   	org.freedesktop.Platform.GL.nvidia-580-95-05	1.4	r
+
+Proceed with these changes to the system installation? [Y/n]: n

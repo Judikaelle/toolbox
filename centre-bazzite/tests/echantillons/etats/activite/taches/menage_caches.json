@@ -1,0 +1,17 @@
+{
+  "id": "menage:caches",
+  "type": "menage",
+  "titre": "Ménage des caches",
+  "statut": "echec",
+  "progression": 30,
+  "detail": "Permission refusée sur ~/.cache/vieux",
+  "debut": "2026-11-09T14:40:00",
+  "fin": "2026-11-09T14:41:00",
+  "unite": null,
+  "etapes": [],
+  "journal": [
+    "Suppression des miniatures : 120 Mo libérés",
+    "Suppression de ~/.cache/vieux",
+    "Erreur : permission refusée"
+  ]
+}

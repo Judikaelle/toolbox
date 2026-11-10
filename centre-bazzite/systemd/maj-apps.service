@@ -1,0 +1,13 @@
+[Unit]
+Description=Mises à jour hors uupd (Vicinae, Ollama, uv, distrobox…)
+Documentation=file://%h/developer/toolbox/centre-bazzite/centre_bazzite/majapps/
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/maj-apps
+# 75 = reporté (jeu en cours ou pas de réseau) : nouvel essai 30 min plus tard
+RestartForceExitStatus=75
+RestartSec=30min
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle

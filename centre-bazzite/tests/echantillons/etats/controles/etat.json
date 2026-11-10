@@ -1,0 +1,243 @@
+{
+ "compteurs": {
+  "majs": 2,
+  "sante": 0,
+  "stockage": 6
+ },
+ "genere": "2026-11-09T16:20:19",
+ "couleur": "rouge",
+ "phrase": "Un problème demande ton attention.",
+ "phrase2": "6 choses méritent un coup d'œil.",
+ "en_cours": null,
+ "extinction": null,
+ "extinction_annulee": false,
+ "redemarrage": false,
+ "jeu": null,
+ "depuis_visite": {
+  "depuis": "2026-11-08T09:00:00",
+  "nombre": 3,
+  "chronologie": [
+   {
+    "heure": "2026-11-09T04:50:00",
+    "titre": "Mise à jour du système",
+    "ligne": "Bazzite 45.20261109 installée."
+   },
+   {
+    "heure": "2026-11-08T18:10:00",
+    "titre": "Mise à jour des applications",
+    "ligne": "2 applications Flatpak mises à jour."
+   }
+  ]
+ },
+ "derniere_maj": null,
+ "sante": {
+  "ssd": [
+   {
+    "modele": "NVMe Exemple SSD with Heatsink 2TB",
+    "bus": "nvme",
+    "peripherique": "/dev/nvme0n1",
+    "sante": {
+     "usure": 1,
+     "reserve": 100,
+     "seuil_reserve": 10,
+     "temperature": 37.85,
+     "erreurs_media": 0,
+     "arrets_brutaux": 49,
+     "heures": 2851,
+     "ecrit_to": 21.7,
+     "avertissements": []
+    }
+   }
+  ],
+  "temperatures": {
+   "cpu": 41.0,
+   "ssd": 36.85
+  },
+  "gpu": {
+   "nom": "NVIDIA GeForce RTX 4070",
+   "temperature": 46,
+   "watts": 51.6,
+   "vram_utilisee_go": 1.39,
+   "vram_totale_go": 15.92
+  },
+  "volumes": [
+   {
+    "nom": "Système",
+    "chemin": "/var",
+    "libre_go": 10.2,
+    "total_go": 68.4,
+    "pourcent_utilise": 85.1
+   },
+   {
+    "nom": "Home",
+    "chemin": "/var/home",
+    "libre_go": 561.1,
+    "total_go": 890.2,
+    "pourcent_utilise": 37.0
+   },
+   {
+    "nom": "Externe",
+    "chemin": "/var/mnt/EXTERNE",
+    "libre_go": 120.0,
+    "total_go": 3725.9,
+    "pourcent_utilise": 96.8
+   }
+  ],
+  "services_en_echec": [],
+  "controles": {
+   "date": "2026-11-09T14:05:00",
+   "image": {
+    "disponible": "45.20261110"
+   },
+   "flatpak": {
+    "a_mettre_a_jour": [
+     "org.mozilla.Thunderbird",
+     "org.libreoffice.LibreOffice"
+    ]
+   },
+   "runtimes": {
+    "inutilises": [
+     "org.kde.Platform",
+     "org.gnome.Platform"
+    ],
+    "gl_obsoletes": [
+     "runtime/org.freedesktop.Platform.GL.nvidia-580-95-05/x86_64/1.4"
+    ]
+   },
+   "telechargements": [
+    {
+     "nom": "Fedora-KDE-Live-45.iso.part",
+     "octets": 2254857830,
+     "present": 37
+    }
+   ],
+   "caches": {
+    "miniatures": 128974848,
+    "corbeille": 2469606195,
+    "journal": 1610612736
+   },
+   "boot": {
+    "nom": "Démarrage",
+    "chemin": "/boot",
+    "libre_go": 0.64,
+    "total_go": 0.95,
+    "pourcent_utilise": 32.9
+   }
+  },
+  "erreurs_disque": {
+   "nombre": 3,
+   "exemples": [
+    "nov. 09 08:12:01 bazzite kernel: usb 2-1: reset SuperSpeed USB device number 3 using xhci_hcd",
+    "nov. 09 08:12:02 bazzite kernel: I/O error, dev sda, sector 123456 op 0x0:(READ)",
+    "nov. 09 08:12:05 bazzite kernel: I/O error, dev sda, sector 123464 op 0x0:(READ)"
+   ]
+  },
+  "non_montes": [
+   "/var/mnt/DONNEES"
+  ],
+  "attendus": [
+   {
+    "nom": "Données",
+    "chemin": "/var/mnt/DONNEES"
+   }
+  ]
+ },
+ "points": [
+  {
+   "id": "stockage:non-monte:/var/mnt/DONNEES",
+   "gravite": "echec",
+   "titre": "Données n'est pas monté",
+   "detail": "/var/mnt/DONNEES est absent : ce qui y est installé ne se lancera pas. Vérifie que le disque est branché, puis regarde : systemctl status var-mnt-DONNEES.mount",
+   "mesure": 0.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "stockage",
+   "domaine": "disques"
+  },
+  {
+   "id": "stockage:erreurs-es",
+   "gravite": "attention",
+   "titre": "3 erreurs de disque depuis le démarrage",
+   "detail": "Le noyau signale des erreurs d'entrée-sortie ou de système de fichiers. Sauvegarde tes données importantes. Exemples : nov. 09 08:12:01 bazzite kernel: usb 2-1: reset SuperSpeed USB device number 3 using xhci_hcd ; nov. 09 08:12:02 bazzite kernel: I/O error, dev sda, sector 123456 op 0x0:(READ) ; nov. 09 08:12:05 bazzite kernel: I/O error, dev sda, sector 123464 op 0x0:(READ). Le détail : journalctl -k -b",
+   "mesure": 3.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "stockage",
+   "domaine": "disques"
+  },
+  {
+   "id": "maj:dispo:image:45.20261110",
+   "gravite": "info",
+   "titre": "Bazzite 45.20261110 est disponible",
+   "detail": "« Tout mettre à jour » l'installe (la passe de nuit aussi) ; elle s'applique au redémarrage suivant.",
+   "mesure": 0.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "majs",
+   "domaine": "controles"
+  },
+  {
+   "id": "maj:dispo:flatpak",
+   "gravite": "info",
+   "titre": "2 mises à jour Flatpak sont disponibles",
+   "detail": "À mettre à jour : org.mozilla.Thunderbird, org.libreoffice.LibreOffice. « Tout mettre à jour » s'en charge (la passe de nuit aussi).",
+   "mesure": 2.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "majs",
+   "domaine": "controles"
+  },
+  {
+   "id": "volume:/var/mnt/EXTERNE",
+   "gravite": "attention",
+   "titre": "Externe : plus que 120 Go libres",
+   "detail": "Il reste 120 Go libres sur 3 726 Go. Libère de la place avant que les mises à jour ou les jeux échouent.",
+   "mesure": 96.8,
+   "cran": 3.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "stockage",
+   "domaine": "disques"
+  },
+  {
+   "id": "menage:runtimes",
+   "gravite": "attention",
+   "titre": "3 runtimes Flatpak sont inutilisés",
+   "detail": "Inutilisés : org.kde.Platform, org.gnome.Platform. Pour les retirer : flatpak uninstall --unused. Anciens pilotes GL NVIDIA, épinglés : runtime/org.freedesktop.Platform.GL.nvidia-580-95-05/x86_64/1.4. Pour les retirer : flatpak pin --remove <ref>, puis flatpak uninstall --unused.",
+   "mesure": 3.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "stockage",
+   "domaine": "controles"
+  },
+  {
+   "id": "menage:telechargements-incomplets",
+   "gravite": "attention",
+   "titre": "Un téléchargement est incomplet",
+   "detail": "Fedora-KDE-Live-45.iso.part (2,1 Go, 37 % présent). Ils réservent 2,1 Go : supprime-les ou relance leur téléchargement.",
+   "mesure": 1.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "stockage",
+   "domaine": "controles"
+  },
+  {
+   "id": "menage:journal",
+   "gravite": "attention",
+   "titre": "Le journal système occupe 1,5 Go",
+   "detail": "Réduis-le dans un terminal : sudo journalctl --vacuum-size=500M",
+   "mesure": 1.5,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false,
+   "rubrique": "stockage",
+   "domaine": "controles"
+  }
+ ]
+}

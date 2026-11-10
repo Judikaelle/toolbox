@@ -1,0 +1,732 @@
+{
+ "genere": "2026-11-10T10:54:14",
+ "disques": [
+  {
+   "id": "nvme0n1",
+   "titre": "Disque interne (NVMe 2 To)",
+   "modele": "NVMe Exemple SSD with Heatsink 2TB",
+   "interne": true,
+   "volumes": [
+    {
+     "nom": "Données",
+     "chemin": "/var/mnt/DONNEES",
+     "fs": "btrfs",
+     "libre_go": 238.3,
+     "total_go": 886.5,
+     "pourcent_utilise": 73.1,
+     "position": "debut",
+     "etat": "ok"
+    },
+    {
+     "nom": "Système",
+     "chemin": "/var",
+     "fs": "ext4",
+     "libre_go": 9.7,
+     "total_go": 68.4,
+     "pourcent_utilise": 85.9,
+     "position": "milieu",
+     "etat": "ok"
+    },
+    {
+     "nom": "Home",
+     "chemin": "/var/home",
+     "fs": "ext4",
+     "libre_go": 556.5,
+     "total_go": 890.2,
+     "pourcent_utilise": 37.5,
+     "position": "fin",
+     "etat": "ok"
+    }
+   ]
+  },
+  {
+   "id": "sda",
+   "titre": "Disque externe (SSD USB)",
+   "modele": "USB Exemple SSD",
+   "interne": false,
+   "volumes": [
+    {
+     "nom": "Externe",
+     "chemin": "/var/mnt/EXTERNE",
+     "fs": "exfat",
+     "libre_go": 353.2,
+     "total_go": 3725.9,
+     "pourcent_utilise": 90.5,
+     "position": null,
+     "etat": "ok"
+    }
+   ]
+  }
+ ],
+ "linstat": {
+  "moteur": true,
+  "commande": "/home/bazzite/.local/share/linstat/linstat.py"
+ },
+ "analyses": {
+  "/var/mnt/DONNEES": {
+   "chemin": "/var/mnt/DONNEES",
+   "date": "2026-11-09T20:20:30",
+   "duree_s": 2.0,
+   "total": 832537669632,
+   "total_texte": "775 Go",
+   "fichiers": 734210,
+   "erreurs": 0,
+   "categories": [
+    {
+     "nom": "Jeux",
+     "octets": 475147227136,
+     "taille": "443 Go",
+     "nombre": 138756
+    },
+    {
+     "nom": "Autres",
+     "octets": 339263102976,
+     "taille": "316 Go",
+     "nombre": 590925
+    },
+    {
+     "nom": "Vidéos",
+     "octets": 16019398656,
+     "taille": "15 Go",
+     "nombre": 572
+    },
+    {
+     "nom": "Programmes & système",
+     "octets": 1745457152,
+     "taille": "1,6 Go",
+     "nombre": 1787
+    },
+    {
+     "nom": "Archives",
+     "octets": 116350976,
+     "taille": "111 Mo",
+     "nombre": 4
+    },
+    {
+     "nom": "Images",
+     "octets": 65241088,
+     "taille": "62 Mo",
+     "nombre": 77
+    },
+    {
+     "nom": "Données",
+     "octets": 58720256,
+     "taille": "56 Mo",
+     "nombre": 98
+    },
+    {
+     "nom": "Code & dév.",
+     "octets": 43454464,
+     "taille": "41 Mo",
+     "nombre": 1033
+    },
+    {
+     "nom": "Audio",
+     "octets": 36388864,
+     "taille": "35 Mo",
+     "nombre": 214
+    },
+    {
+     "nom": "Polices",
+     "octets": 21282816,
+     "taille": "20 Mo",
+     "nombre": 16
+    },
+    {
+     "nom": "Documents",
+     "octets": 21045248,
+     "taille": "20 Mo",
+     "nombre": 728
+    }
+   ],
+   "dossiers": [
+    {
+     "nom": "Emulateur",
+     "chemin": "/var/mnt/DONNEES/Emulateur",
+     "octets": 416055848960,
+     "taille": "387 Go",
+     "categorie": null
+    },
+    {
+     "nom": "Bibliotheque",
+     "chemin": "/var/mnt/DONNEES/Bibliotheque",
+     "octets": 307781128192,
+     "taille": "287 Go",
+     "categorie": "Jeux"
+    },
+    {
+     "nom": "DossierA",
+     "chemin": "/var/mnt/DONNEES/DossierA",
+     "octets": 54336618496,
+     "taille": "51 Go",
+     "categorie": null
+    },
+    {
+     "nom": "DossierB",
+     "chemin": "/var/mnt/DONNEES/DossierB",
+     "octets": 33043677184,
+     "taille": "31 Go",
+     "categorie": null
+    },
+    {
+     "nom": "DossierC",
+     "chemin": "/var/mnt/DONNEES/DossierC",
+     "octets": 12419977216,
+     "taille": "12 Go",
+     "categorie": null
+    },
+    {
+     "nom": "DossierD",
+     "chemin": "/var/mnt/DONNEES/DossierD",
+     "octets": 7525167104,
+     "taille": "7,0 Go",
+     "categorie": null
+    },
+    {
+     "nom": "drive_c",
+     "chemin": "/var/mnt/DONNEES/drive_c",
+     "octets": 1371258880,
+     "taille": "1,3 Go",
+     "categorie": null
+    },
+    {
+     "nom": "dosdevices",
+     "chemin": "/var/mnt/DONNEES/dosdevices",
+     "octets": 32768,
+     "taille": "0 Mo",
+     "categorie": null
+    }
+   ]
+  },
+  "/var": {
+   "chemin": "/var",
+   "date": "2026-11-09T19:41:09",
+   "duree_s": 0.8,
+   "total": 21228634112,
+   "total_texte": "20 Go",
+   "fichiers": 199070,
+   "erreurs": 60,
+   "categories": [
+    {
+     "nom": "Programmes & système",
+     "octets": 19465326592,
+     "taille": "18 Go",
+     "nombre": 198644
+    },
+    {
+     "nom": "Autres",
+     "octets": 658501632,
+     "taille": "628 Mo",
+     "nombre": 113
+    },
+    {
+     "nom": "Archives",
+     "octets": 648175616,
+     "taille": "618 Mo",
+     "nombre": 23
+    },
+    {
+     "nom": "Caches",
+     "octets": 391802880,
+     "taille": "374 Mo",
+     "nombre": 141
+    },
+    {
+     "nom": "Données",
+     "octets": 62636032,
+     "taille": "60 Mo",
+     "nombre": 113
+    },
+    {
+     "nom": "Polices",
+     "octets": 1064960,
+     "taille": "1 Mo",
+     "nombre": 3
+    },
+    {
+     "nom": "Images",
+     "octets": 1028096,
+     "taille": "1 Mo",
+     "nombre": 11
+    },
+    {
+     "nom": "Code & dév.",
+     "octets": 98304,
+     "taille": "0 Mo",
+     "nombre": 22
+    }
+   ],
+   "dossiers": [
+    {
+     "nom": "lib",
+     "chemin": "/var/lib",
+     "octets": 20197330944,
+     "taille": "19 Go",
+     "categorie": null
+    },
+    {
+     "nom": "log",
+     "chemin": "/var/log",
+     "octets": 572465152,
+     "taille": "546 Mo",
+     "categorie": null
+    },
+    {
+     "nom": "cache",
+     "chemin": "/var/cache",
+     "octets": 391798784,
+     "taille": "374 Mo",
+     "categorie": "Caches"
+    },
+    {
+     "nom": "usrlocal",
+     "chemin": "/var/usrlocal",
+     "octets": 62316544,
+     "taille": "59 Mo",
+     "categorie": null
+    },
+    {
+     "nom": "sddm_themes",
+     "chemin": "/var/sddm_themes",
+     "octets": 4718592,
+     "taille": "5 Mo",
+     "categorie": null
+    }
+   ]
+  },
+  "/var/home": {
+   "chemin": "/var/home",
+   "date": "2026-11-09T21:07:01",
+   "duree_s": 4.0,
+   "total": 299178344448,
+   "total_texte": "279 Go",
+   "fichiers": 1382549,
+   "erreurs": 20,
+   "categories": [
+    {
+     "nom": "Autres",
+     "octets": 136930320384,
+     "taille": "128 Go",
+     "nombre": 673831
+    },
+    {
+     "nom": "Programmes & système",
+     "octets": 35531190272,
+     "taille": "33 Go",
+     "nombre": 79630
+    },
+    {
+     "nom": "Jeux",
+     "octets": 27874082816,
+     "taille": "26 Go",
+     "nombre": 86151
+    },
+    {
+     "nom": "Caches",
+     "octets": 23718744064,
+     "taille": "22 Go",
+     "nombre": 1295
+    },
+    {
+     "nom": "Audio",
+     "octets": 16291069952,
+     "taille": "15 Go",
+     "nombre": 41150
+    },
+    {
+     "nom": "Code & dév.",
+     "octets": 14787297280,
+     "taille": "14 Go",
+     "nombre": 404070
+    },
+    {
+     "nom": "Archives",
+     "octets": 14420250624,
+     "taille": "13 Go",
+     "nombre": 27893
+    },
+    {
+     "nom": "Données",
+     "octets": 14099152896,
+     "taille": "13 Go",
+     "nombre": 10448
+    },
+    {
+     "nom": "Modèles IA",
+     "octets": 7844147200,
+     "taille": "7,3 Go",
+     "nombre": 390
+    },
+    {
+     "nom": "Vidéos",
+     "octets": 2695999488,
+     "taille": "2,5 Go",
+     "nombre": 282
+    },
+    {
+     "nom": "Images",
+     "octets": 2194493440,
+     "taille": "2,0 Go",
+     "nombre": 40877
+    },
+    {
+     "nom": "Polices",
+     "octets": 1701711872,
+     "taille": "1,6 Go",
+     "nombre": 1096
+    },
+    {
+     "nom": "Documents",
+     "octets": 1089806336,
+     "taille": "1,0 Go",
+     "nombre": 15433
+    },
+    {
+     "nom": "VM & images disque",
+     "octets": 77824,
+     "taille": "0 Mo",
+     "nombre": 3
+    }
+   ],
+   "dossiers": [
+    {
+     "nom": "bazzite",
+     "chemin": "/var/home/bazzite",
+     "octets": 292540112896,
+     "taille": "272 Go",
+     "categorie": null
+    },
+    {
+     "nom": "linuxbrew",
+     "chemin": "/var/home/linuxbrew",
+     "octets": 6638231552,
+     "taille": "6,2 Go",
+     "categorie": null
+    }
+   ]
+  },
+  "/var/mnt/EXTERNE": {
+   "chemin": "/var/mnt/EXTERNE",
+   "date": "2026-11-09T20:28:06",
+   "duree_s": 415.6,
+   "total": 3615242977280,
+   "total_texte": "3,3 To",
+   "fichiers": 678306,
+   "erreurs": 0,
+   "categories": [
+    {
+     "nom": "Audio",
+     "octets": 3580120793088,
+     "taille": "3,3 To",
+     "nombre": 649868
+    },
+    {
+     "nom": "Autres",
+     "octets": 14379253760,
+     "taille": "13 Go",
+     "nombre": 21066
+    },
+    {
+     "nom": "VM & images disque",
+     "octets": 10095951872,
+     "taille": "9,4 Go",
+     "nombre": 1
+    },
+    {
+     "nom": "Vidéos",
+     "octets": 4030070784,
+     "taille": "3,8 Go",
+     "nombre": 58
+    },
+    {
+     "nom": "Images",
+     "octets": 2404384768,
+     "taille": "2,2 Go",
+     "nombre": 1192
+    },
+    {
+     "nom": "Documents",
+     "octets": 1917976576,
+     "taille": "1,8 Go",
+     "nombre": 2581
+    },
+    {
+     "nom": "Code & dév.",
+     "octets": 1428815872,
+     "taille": "1,3 Go",
+     "nombre": 3500
+    },
+    {
+     "nom": "Archives",
+     "octets": 675807232,
+     "taille": "645 Mo",
+     "nombre": 23
+    },
+    {
+     "nom": "Données",
+     "octets": 188874752,
+     "taille": "180 Mo",
+     "nombre": 15
+    },
+    {
+     "nom": "Programmes & système",
+     "octets": 1048576,
+     "taille": "1 Mo",
+     "nombre": 2
+    }
+   ],
+   "dossiers": [
+    {
+     "nom": "DossierE",
+     "chemin": "/var/mnt/EXTERNE/DossierE",
+     "octets": 3364121477120,
+     "taille": "3,1 To",
+     "categorie": null
+    },
+    {
+     "nom": "DossierF",
+     "chemin": "/var/mnt/EXTERNE/DossierF",
+     "octets": 208311943168,
+     "taille": "194 Go",
+     "categorie": null
+    },
+    {
+     "nom": "DossierG",
+     "chemin": "/var/mnt/EXTERNE/DossierG",
+     "octets": 33058586624,
+     "taille": "31 Go",
+     "categorie": null
+    },
+    {
+     "nom": "DossierH",
+     "chemin": "/var/mnt/EXTERNE/DossierH",
+     "octets": 9250799616,
+     "taille": "8,6 Go",
+     "categorie": null
+    },
+    {
+     "nom": "DossierI",
+     "chemin": "/var/mnt/EXTERNE/DossierI",
+     "octets": 202899456,
+     "taille": "194 Mo",
+     "categorie": null
+    },
+    {
+     "nom": "DossierJ",
+     "chemin": "/var/mnt/EXTERNE/DossierJ",
+     "octets": 112459776,
+     "taille": "107 Mo",
+     "categorie": null
+    },
+    {
+     "nom": ".Spotlight-V100",
+     "chemin": "/var/mnt/EXTERNE/.Spotlight-V100",
+     "octets": 111935488,
+     "taille": "107 Mo",
+     "categorie": null
+    },
+    {
+     "nom": ".fseventsd",
+     "chemin": "/var/mnt/EXTERNE/.fseventsd",
+     "octets": 72876032,
+     "taille": "70 Mo",
+     "categorie": null
+    }
+   ]
+  }
+ },
+ "recommandations": [],
+ "optimiser": {
+  "options": [
+   {
+    "id": "A",
+    "titre": "Garder les volumes, mais les présenter par disque physique",
+    "etat": "fait",
+    "badge": "En place",
+    "texte": "C'est ce que tu vois ici : 2 disques physiques, 4 volumes. Sans risque.",
+    "commandes": null,
+    "applis": []
+   },
+   {
+    "id": "B",
+    "titre": "Libérer le SSD externe",
+    "etat": "a_decider",
+    "badge": "À décider",
+    "texte": "Ce disque ne sert plus qu'aux archives. Externe a 353,2 Go libres sur 3725,9 Go. Si elles existent déjà ailleurs, ce disque peut être effacé, réaffecté ou débranché. Vérifie-le d'abord : Health Hub n'efface rien.",
+    "commandes": null,
+    "applis": []
+   },
+   {
+    "id": "C",
+    "titre": "Soulager la partition Système",
+    "etat": "possible",
+    "badge": "Possible : 6,9 Go à déplacer",
+    "texte": "Système n'a que 9,7 Go libres sur 68,4 Go : c'est le vrai goulot. Les applis Flatpak installées pour tout le système occupent environ 21 Go dans /var. Les réinstaller pour ton seul utilisateur les place dans Home (556,5 Go libres), appli par appli, sans repartitionner. Tes réglages (~/.var/app) ne bougent pas.",
+    "commandes": "flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\nflatpak install --user -y flathub org.darktable.Darktable\nflatpak uninstall --system -y org.darktable.Darktable\nflatpak install --user -y flathub org.kde.digikam\nflatpak uninstall --system -y org.kde.digikam\nflatpak install --user -y flathub org.gnome.Builder\nflatpak uninstall --system -y org.gnome.Builder\nflatpak install --user -y flathub org.freecad.FreeCAD\nflatpak uninstall --system -y org.freecad.FreeCAD\nflatpak install --user -y flathub org.inkscape.Inkscape\nflatpak uninstall --system -y org.inkscape.Inkscape\nflatpak install --user -y flathub org.libreoffice.LibreOffice\nflatpak uninstall --system -y org.libreoffice.LibreOffice\nflatpak install --user -y flathub org.kde.kdenlive\nflatpak uninstall --system -y org.kde.kdenlive\nflatpak install --user -y flathub org.mozilla.Thunderbird\nflatpak uninstall --system -y org.mozilla.Thunderbird\nflatpak install --user -y flathub org.kde.kstars\nflatpak uninstall --system -y org.kde.kstars\nflatpak install --user -y flathub org.gimp.GIMP\nflatpak uninstall --system -y org.gimp.GIMP\nflatpak install --user -y flathub org.gnome.Rhythmbox3\nflatpak uninstall --system -y org.gnome.Rhythmbox3\nflatpak install --user -y flathub org.gnome.Totem\nflatpak uninstall --system -y org.gnome.Totem\nflatpak install --user -y flathub org.gnome.Maps\nflatpak uninstall --system -y org.gnome.Maps\nflatpak install --user -y flathub org.gnome.Chess\nflatpak uninstall --system -y org.gnome.Chess\nflatpak install --user -y flathub org.gnome.Calendar\nflatpak uninstall --system -y org.gnome.Calendar\nflatpak install --user -y flathub org.kde.okular\nflatpak uninstall --system -y org.kde.okular\nflatpak install --user -y flathub org.gnome.Boxes\nflatpak uninstall --system -y org.gnome.Boxes\nflatpak install --user -y flathub org.kde.kate\nflatpak uninstall --system -y org.kde.kate\nflatpak install --user -y flathub org.gnome.TextEditor\nflatpak uninstall --system -y org.gnome.TextEditor\nflatpak install --user -y flathub org.gnome.Characters\nflatpak uninstall --system -y org.gnome.Characters\nflatpak install --user -y flathub org.kde.kcalc\nflatpak uninstall --system -y org.kde.kcalc\nflatpak install --user -y flathub org.gnome.clocks\nflatpak uninstall --system -y org.gnome.clocks\nflatpak install --user -y flathub org.gnome.Weather\nflatpak uninstall --system -y org.gnome.Weather\nflatpak install --user -y flathub org.gnome.Logs\nflatpak uninstall --system -y org.gnome.Logs\nflatpak install --user -y flathub org.gnome.Calculator\nflatpak uninstall --system -y org.gnome.Calculator\nflatpak uninstall --system --unused -y",
+    "applis": [
+     {
+      "id": "org.darktable.Darktable",
+      "nom": "darktable",
+      "octets": 1100000000,
+      "taille": "1,0 Go"
+     },
+     {
+      "id": "org.kde.digikam",
+      "nom": "digiKam",
+      "octets": 998400000,
+      "taille": "952 Mo"
+     },
+     {
+      "id": "org.gnome.Builder",
+      "nom": "Builder",
+      "octets": 753100000,
+      "taille": "718 Mo"
+     },
+     {
+      "id": "org.freecad.FreeCAD",
+      "nom": "FreeCAD",
+      "octets": 745900000,
+      "taille": "711 Mo"
+     },
+     {
+      "id": "org.inkscape.Inkscape",
+      "nom": "Inkscape",
+      "octets": 623300000,
+      "taille": "594 Mo"
+     },
+     {
+      "id": "org.libreoffice.LibreOffice",
+      "nom": "LibreOffice",
+      "octets": 597600000,
+      "taille": "570 Mo"
+     },
+     {
+      "id": "org.kde.kdenlive",
+      "nom": "Kdenlive",
+      "octets": 537500000,
+      "taille": "513 Mo"
+     },
+     {
+      "id": "org.mozilla.Thunderbird",
+      "nom": "Thunderbird",
+      "octets": 436600000,
+      "taille": "416 Mo"
+     },
+     {
+      "id": "org.kde.kstars",
+      "nom": "KStars",
+      "octets": 427900000,
+      "taille": "408 Mo"
+     },
+     {
+      "id": "org.gimp.GIMP",
+      "nom": "GIMP",
+      "octets": 394300000,
+      "taille": "376 Mo"
+     },
+     {
+      "id": "org.gnome.Rhythmbox3",
+      "nom": "Rhythmbox",
+      "octets": 149600000,
+      "taille": "143 Mo"
+     },
+     {
+      "id": "org.gnome.Totem",
+      "nom": "Videos",
+      "octets": 133500000,
+      "taille": "127 Mo"
+     },
+     {
+      "id": "org.gnome.Maps",
+      "nom": "Maps",
+      "octets": 91600000,
+      "taille": "87 Mo"
+     },
+     {
+      "id": "org.gnome.Chess",
+      "nom": "Chess",
+      "octets": 83400000,
+      "taille": "80 Mo"
+     },
+     {
+      "id": "org.gnome.Calendar",
+      "nom": "Calendar",
+      "octets": 69200000,
+      "taille": "66 Mo"
+     },
+     {
+      "id": "org.kde.okular",
+      "nom": "Okular",
+      "octets": 60800000,
+      "taille": "58 Mo"
+     },
+     {
+      "id": "org.gnome.Boxes",
+      "nom": "Boxes",
+      "octets": 58200000,
+      "taille": "56 Mo"
+     },
+     {
+      "id": "org.kde.kate",
+      "nom": "Kate",
+      "octets": 25600000,
+      "taille": "24 Mo"
+     },
+     {
+      "id": "org.gnome.TextEditor",
+      "nom": "Text Editor",
+      "octets": 23100000,
+      "taille": "22 Mo"
+     },
+     {
+      "id": "org.gnome.Characters",
+      "nom": "Characters",
+      "octets": 20300000,
+      "taille": "19 Mo"
+     },
+     {
+      "id": "org.kde.kcalc",
+      "nom": "KCalc",
+      "octets": 19300000,
+      "taille": "18 Mo"
+     },
+     {
+      "id": "org.gnome.clocks",
+      "nom": "Clocks",
+      "octets": 14100000,
+      "taille": "13 Mo"
+     },
+     {
+      "id": "org.gnome.Weather",
+      "nom": "Weather",
+      "octets": 5000000,
+      "taille": "5 Mo"
+     },
+     {
+      "id": "org.gnome.Logs",
+      "nom": "Logs",
+      "octets": 4700000,
+      "taille": "4 Mo"
+     },
+     {
+      "id": "org.gnome.Calculator",
+      "nom": "Calculator",
+      "octets": 1400000,
+      "taille": "1 Mo"
+     }
+    ]
+   },
+   {
+    "id": "D",
+    "titre": "Fusionner Données et Home en un seul volume",
+    "etat": "plus_tard",
+    "badge": "Ton idée — plus tard",
+    "texte": "Impossible sur place : Données est au début du disque, Home à la fin, et ext4 ne s'agrandit pas vers l'avant. Il faut sauvegarder, démarrer sur une clé USB, puis déplacer et redimensionner avec GParted. C'est long et risqué. Health Hub ne repartitionne jamais : il préparera un pas-à-pas quand tu le décideras.",
+    "commandes": null,
+    "applis": []
+   }
+  ],
+  "recommandation": "Recommandation : A tout de suite, puis C ; B si son contenu existe ailleurs ; D seulement si tu y tiens vraiment.",
+  "idee": "Ton idée (1er novembre) : fusionner des disques. On en reparlera."
+ }
+}

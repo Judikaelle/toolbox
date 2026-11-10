@@ -1,0 +1,66 @@
+{
+ "genere": "2026-11-09T16:20:19",
+ "disques": [
+  {
+   "id": "nvme0n1",
+   "titre": "Disque interne (NVMe 2 To)",
+   "modele": "NVMe Exemple SSD with Heatsink 2TB",
+   "interne": true,
+   "volumes": [
+    {
+     "nom": "Données",
+     "chemin": "/var/mnt/DONNEES",
+     "fs": "btrfs",
+     "libre_go": 400.0,
+     "total_go": 886.0,
+     "pourcent_utilise": 54.9,
+     "position": "debut",
+     "etat": "ok"
+    },
+    {
+     "nom": "Système",
+     "chemin": "/var",
+     "fs": "ext4",
+     "libre_go": 9.0,
+     "total_go": 70.0,
+     "pourcent_utilise": 87.1,
+     "position": "milieu",
+     "etat": "attention"
+    },
+    {
+     "nom": "Home",
+     "chemin": "/var/home",
+     "fs": "ext4",
+     "libre_go": 300.0,
+     "total_go": 905.0,
+     "pourcent_utilise": 66.9,
+     "position": "fin",
+     "etat": "ok"
+    }
+   ]
+  },
+  {
+   "id": "sda",
+   "titre": "Disque externe (SSD USB)",
+   "modele": "USB Exemple SSD",
+   "interne": false,
+   "volumes": [
+    {
+     "nom": "Externe",
+     "chemin": "/var/mnt/EXTERNE",
+     "fs": "exfat",
+     "libre_go": 150.0,
+     "total_go": 3725.0,
+     "pourcent_utilise": 96.0,
+     "position": null,
+     "etat": "echec"
+    }
+   ]
+  }
+ ],
+ "linstat": {
+  "moteur": false,
+  "commande": null
+ },
+ "analyses": {}
+}

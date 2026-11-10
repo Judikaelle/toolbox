@@ -1,0 +1,16 @@
+{
+  "id": "analyse:/var/mnt/DONNEES",
+  "type": "analyse",
+  "titre": "Analyse de Données",
+  "statut": "en_cours",
+  "progression": -1,
+  "detail": "12 000 fichiers vus",
+  "debut": "2026-11-09T14:55:00",
+  "fin": null,
+  "unite": "health-hub-analyse.service",
+  "etapes": [],
+  "journal": [
+    "Parcours de /var/mnt/DONNEES",
+    "12 000 fichiers vus"
+  ]
+}

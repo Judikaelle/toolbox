@@ -1,0 +1,139 @@
+"""Page Mises à jour : chargée pour de vrai dans Main.qml (QT_QPA_PLATFORM=offscreen), avec des fixtures
+(etat.json + sessions/). Les éléments testés portent un objectName ; on lit leurs propriétés QML."""
+import sys
+import unittest
+from pathlib import Path
+
+ICI = Path(__file__).resolve().parent
+sys.path.insert(0, str(ICI.parent / "fenetre"))
+
+from PySide6.QtCore import QElapsedTimer, QEventLoop, QThread, QUrl  # noqa: E402
+from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
+
+import pont  # noqa: E402
+
+from tests.appli_qt import APP  # noqa: E402
+ETATS = ICI / "echantillons" / "etats"
+
+
+def attendre(ms):
+    chrono = QElapsedTimer()
+    chrono.start()
+    while chrono.elapsed() < ms:
+        APP.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 10)
+        QThread.msleep(5)
+
+
+class Fenetre:
+    def __init__(self, dossier):
+        self.pont = pont.Pont(ETATS / dossier / "etat.json")
+        self.moteur = QQmlApplicationEngine()
+        self.moteur.rootContext().setContextProperty("pont", self.pont)
+        self.moteur.rootContext().setContextProperty("pageInitiale", "majs")
+        self.moteur.load(QUrl.fromLocalFile(str(ICI.parent / "fenetre" / "qml" / "Main.qml")))
+        self.racines = self.moteur.rootObjects()
+        attendre(300)
+
+    def tout(self):
+        a_voir, vus = [self.racines[0].contentItem()], []
+        while a_voir:
+            x = a_voir.pop()
+            vus.append(x)
+            a_voir.extend(x.childItems())
+        return vus
+
+    def objet(self, nom):
+        return next((o for o in self.tout() if o.objectName() == nom), None)
+
+    def objets(self, prefixe, visibles=True):
+        return [o for o in self.tout() if (o.objectName() or "").startswith(prefixe)
+                and (not visibles or o.property("visible"))]
+
+    def choisir(self, cle):
+        self.objet("page-majs").setProperty("choix", cle)
+        attendre(100)
+
+    def mots(self, prefixe):
+        """{nom sans préfixe: (mot, état)} des badges visibles dont l'objectName commence par prefixe."""
+        return {o.objectName()[len(prefixe):]: (o.property("texte"), o.property("etat"))
+                for o in self.objets(prefixe)}
+
+    def fermer(self):
+        self.racines[0].close()
+        self.moteur.deleteLater()
+        self.pont.deleteLater()
+
+
+class Base(unittest.TestCase):
+    dossier = "majs"
+
+    def setUp(self):
+        self.f = Fenetre(self.dossier)
+        self.addCleanup(self.f.fermer)
+        self.assertTrue(self.f.racines, "Main.qml ne s'est pas chargé")
+        self.assertIsNotNone(self.f.objet("page-majs"), "page Mises à jour absente")
+
+
+class ListeDesSessions(Base):
+    def test_issue_de_chaque_session_en_toutes_lettres(self):
+        self.assertEqual(self.f.mots("badge-entree-s:"), {
+            "2026-11-09T04:45:00": ("Réussie", "ok"),
+            "2026-11-08T18:10:00": ("Échec", "echec"),
+            "2026-11-07T21:00:00": ("Interrompue", "attention"),
+        })
+
+    def test_session_en_cours_en_haut(self):
+        self.assertEqual(self.f.objet("badge-entree-cours").property("texte"), "En cours, 9 %")
+        self.assertEqual(self.f.objet("badge-entree-cours").property("etat"), "en_cours")
+
+    def test_pas_d_etat_vide_quand_il_y_a_des_sessions(self):
+        self.assertIsNone(next(iter(self.f.objets("vide-sessions")), None))
+
+
+class DetailDUneSession(Base):
+    def test_session_en_cours_une_progression_pour_l_etape_active(self):
+        self.assertEqual(self.f.mots("badge-etape-"), {
+            "uupd": ("En cours", "en_cours"), "maj-apps": ("En attente", "neutre"),
+            "notes": ("En attente", "neutre"), "resume": ("En attente", "neutre"),
+            "etat": ("En attente", "neutre")})
+        progressions = self.f.objets("progression-etape-")
+        self.assertEqual([p.objectName() for p in progressions], ["progression-etape-uupd"])
+        self.assertAlmostEqual(progressions[0].property("valeur"), 0.45)
+
+    def test_session_reussie(self):
+        self.f.choisir("s:2026-11-09T04:45:00")
+        self.assertEqual(self.f.objet("badge-resultat").property("texte"), "Réussie")
+        self.assertEqual(self.f.objet("badge-resultat").property("etat"), "ok")
+        self.assertEqual(set(self.f.mots("badge-etape-").values()), {("Terminée", "ok")})
+        self.assertEqual(self.f.objets("progression-etape-"), [])
+
+    def test_session_en_echec_tous_les_statuts(self):
+        self.f.choisir("s:2026-11-08T18:10:00")
+        self.assertEqual(self.f.objet("badge-resultat").property("texte"), "Échec")
+        self.assertEqual(self.f.mots("badge-etape-"), {
+            "uupd": ("Terminée", "ok"), "maj-apps": ("Échec", "echec"),
+            "notes": ("Reportée", "attention"), "resume": ("Sautée", "neutre"),
+            "etat": ("Terminée", "ok")})
+
+    def test_session_interrompue(self):
+        self.f.choisir("s:2026-11-07T21:00:00")
+        self.assertEqual(self.f.objet("badge-resultat").property("texte"), "Interrompue")
+        self.assertEqual(self.f.objet("badge-resultat").property("etat"), "attention")
+
+    def test_changements_de_la_visite_en_filets(self):
+        self.f.choisir("visite")
+        self.assertEqual(self.f.objets("vide-visite"), [])
+
+
+class SansRien(Base):
+    dossier = "vide"
+
+    def test_etats_vides_encadres(self):
+        self.assertEqual([o.property("texte") for o in self.f.objets("vide-sessions")],
+                         ["Aucune mise à jour lancée depuis Health Hub pour l'instant."])
+        self.assertEqual([o.property("texte") for o in self.f.objets("vide-visite")],
+                         ["Rien de nouveau depuis ta dernière visite."])
+
+
+if __name__ == "__main__":
+    unittest.main()

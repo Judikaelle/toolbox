@@ -1,0 +1,42 @@
+"InstallConfigStore"
+{
+	"Software"
+	{
+		"Valve"
+		{
+			"Steam"
+			{
+				"CompatToolMapping"
+				{
+					"0"
+					{
+						"name"		"proton_experimental"
+						"config"		""
+						"priority"		"75"
+					}
+					"1000010"
+					{
+						"name"		"GE-Proton9-20"
+						"config"		""
+						"priority"		"250"
+					}
+					"480"
+					{
+						"name"		"Proton-CachyOS Latest"
+						"config"		""
+						"priority"		"250"
+					}
+				}
+				"ShaderCacheManager"
+				{
+					"HasCurrentBucket"		"1"
+				}
+			}
+		}
+	}
+	"Music"
+	{
+		// un "name" hors de CompatToolMapping ne compte pas
+		"name"		"GE-Proton10-25"
+	}
+}

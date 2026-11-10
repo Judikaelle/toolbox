@@ -1,0 +1,11 @@
+[Unit]
+Description=Health Hub : relevé 1 min après l'allumage, puis toutes les heures
+
+[Timer]
+# le relevé à 1 min précède les rattrapages de uupd et maj-apps (5 à 15 min après l'allumage)
+OnBootSec=1min
+OnUnitActiveSec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

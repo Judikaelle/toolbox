@@ -1,0 +1,72 @@
+{
+ "compteurs": {"majs": 0, "sante": 2, "stockage": 0},
+ "sante": {
+  "ssd": [
+   {
+    "modele": "NVMe Exemple SSD with Heatsink 2TB",
+    "bus": "nvme",
+    "peripherique": "/dev/nvme0n1",
+    "sante": {
+     "usure": 1,
+     "reserve": 100,
+     "seuil_reserve": 10,
+     "temperature": 37.85,
+     "erreurs_media": 0,
+     "arrets_brutaux": 49,
+     "heures": 2851,
+     "ecrit_to": 21.7,
+     "avertissements": []
+    }
+   },
+   {
+    "modele": "Kingston NV2 1TB",
+    "bus": "nvme",
+    "peripherique": "/dev/nvme1n1",
+    "sante": {
+     "usure": 92,
+     "reserve": 60,
+     "seuil_reserve": 10,
+     "temperature": 41,
+     "erreurs_media": 0,
+     "arrets_brutaux": 3,
+     "heures": 9000,
+     "ecrit_to": 410.2,
+     "avertissements": []
+    }
+   },
+   {
+    "modele": "USB Exemple SSD",
+    "bus": "usb",
+    "peripherique": "/dev/sda",
+    "sante": null
+   },
+   {
+    "modele": "Disque sans bus",
+    "peripherique": "/dev/sdb",
+    "sante": null
+   }
+  ]
+ },
+ "points": [
+  {
+   "id": "ssd:NVMe Exemple SSD with Heatsink 2TB:critique:media",
+   "gravite": "echec",
+   "titre": "Le disque NVMe Exemple signale un problème grave",
+   "detail": "",
+   "mesure": 1.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false
+  },
+  {
+   "id": "ssd:Kingston NV2 1TB:usure",
+   "gravite": "attention",
+   "titre": "Le disque Kingston est usé à 92 %",
+   "detail": "",
+   "mesure": 1.0,
+   "cran": 1.0,
+   "action": null,
+   "en_sourdine": false
+  }
+ ]
+}

@@ -1,0 +1,130 @@
+{
+  "compteurs": {
+    "majs": 0,
+    "sante": 0,
+    "stockage": 2
+  },
+  "genere": "2026-11-09T16:20:19",
+  "couleur": "orange",
+  "phrase": "Une chose mérite un coup d'œil.",
+  "phrase2": "Le volume Système n'a presque plus de place.",
+  "en_cours": null,
+  "extinction": null,
+  "extinction_annulee": false,
+  "redemarrage": false,
+  "jeu": null,
+  "depuis_visite": {
+    "depuis": "2026-11-08T09:00:00",
+    "nombre": 3,
+    "chronologie": [
+      {
+        "heure": "2026-11-09T04:50:00",
+        "titre": "Mise à jour du système",
+        "ligne": "Bazzite 45.20261109 installée."
+      },
+      {
+        "heure": "2026-11-08T18:10:00",
+        "titre": "Mise à jour des applications",
+        "ligne": "2 applications Flatpak mises à jour."
+      }
+    ]
+  },
+  "derniere_maj": null,
+  "sante": {
+    "ssd": [
+      {
+        "modele": "NVMe Exemple SSD with Heatsink 2TB",
+        "bus": "nvme",
+        "peripherique": "/dev/nvme0n1",
+        "sante": {
+          "usure": 1,
+          "reserve": 100,
+          "seuil_reserve": 10,
+          "temperature": 37.85,
+          "erreurs_media": 0,
+          "arrets_brutaux": 49,
+          "heures": 2851,
+          "ecrit_to": 21.7,
+          "avertissements": []
+        }
+      }
+    ],
+    "temperatures": {
+      "cpu": 41.0,
+      "ssd": 36.85
+    },
+    "gpu": {
+      "nom": "NVIDIA GeForce RTX 4070",
+      "temperature": 46,
+      "watts": 51.6,
+      "vram_utilisee_go": 1.39,
+      "vram_totale_go": 15.92
+    },
+    "volumes": [
+      {
+        "nom": "Système",
+        "chemin": "/var",
+        "libre_go": 10.2,
+        "total_go": 68.4,
+        "pourcent_utilise": 85.1
+      },
+      {
+        "nom": "Home",
+        "chemin": "/var/home",
+        "libre_go": 561.1,
+        "total_go": 890.2,
+        "pourcent_utilise": 37.0
+      },
+      {
+        "nom": "Données",
+        "chemin": "/var/mnt/DONNEES",
+        "libre_go": 238.3,
+        "total_go": 886.5,
+        "pourcent_utilise": 73.1
+      },
+      {
+        "nom": "Externe",
+        "chemin": "/var/mnt/EXTERNE",
+        "libre_go": 120.0,
+        "total_go": 3725.9,
+        "pourcent_utilise": 96.8
+      }
+    ],
+    "services_en_echec": []
+  },
+  "points": [
+    {
+      "id": "volume:/var",
+      "gravite": "attention",
+      "titre": "Système : plus que 10 Go libres",
+      "detail": "Il reste 10 Go libres sur 68 Go.",
+      "mesure": 85.1,
+      "cran": 3.0,
+      "action": null,
+      "en_sourdine": false,
+      "rubrique": "stockage"
+    },
+    {
+      "id": "volume:/var/mnt/EXTERNE",
+      "gravite": "echec",
+      "titre": "Externe : plus que 120 Go libres",
+      "detail": "Libère de la place.",
+      "mesure": 96.8,
+      "cran": 3.0,
+      "action": null,
+      "en_sourdine": false,
+      "rubrique": "stockage"
+    },
+    {
+      "id": "menage:journal",
+      "gravite": "attention",
+      "titre": "Le journal pèse 1,5 Go",
+      "detail": "sudo journalctl --vacuum-size=500M",
+      "mesure": 1.5,
+      "cran": 1.0,
+      "action": null,
+      "en_sourdine": true,
+      "rubrique": "stockage"
+    }
+  ]
+}

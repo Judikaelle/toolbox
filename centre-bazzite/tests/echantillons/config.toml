@@ -1,0 +1,33 @@
+# Configuration des tests : tests/__init__.py la met à la place de ~/.config/health-hub/config.toml, que les tests ne
+# lisent jamais. Mêmes volumes que les échantillons.
+
+[[volumes]]
+nom = "Système"
+chemin = "/var"
+
+[[volumes]]
+nom = "Home"
+chemin = "/var/home"
+
+[[volumes]]
+nom = "Données"
+chemin = "/var/mnt/DONNEES"
+attendu = true
+
+[[volumes]]
+nom = "Externe"
+chemin = "/var/mnt/EXTERNE"
+facultatif = true
+
+[majapps.distrobox]
+applis = { messagerie = ["messagerie", "Messagerie"] }
+
+[optimiser]
+recommandation = "Recommandation : A tout de suite, puis C ; B si son contenu existe ailleurs ; D seulement si tu y tiens vraiment."
+idee = "Ton idée (1er novembre) : fusionner des disques. On en reparlera."
+fusionner = ["Données", "Home"]
+
+[optimiser.liberer]
+volume = "Externe"
+phrase = "Ce disque ne sert plus qu'aux archives."
+conseil = "Si elles existent déjà ailleurs, ce disque peut être effacé, réaffecté ou débranché."

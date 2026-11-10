@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Health Hub
+Comment=Mises à jour et santé du PC
+Icon=centre-bazzite
+Exec=centre-bazzite-fenetre
+Terminal=false
+Categories=System;Settings;
+Keywords=mise à jour;santé;disque;bazzite;health hub;

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Lanceur de maj-apps (suit les liens symboliques pour trouver le dossier du code).
+ici="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+export PYTHONPATH="$(dirname "$ici")${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m centre_bazzite.majapps "$@"

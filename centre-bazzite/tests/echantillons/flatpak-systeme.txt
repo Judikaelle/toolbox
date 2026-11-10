@@ -1,0 +1,25 @@
+org.darktable.Darktable	darktable	flathub	1.1 GB
+org.freecad.FreeCAD	FreeCAD	flathub	745.9 MB
+org.gimp.GIMP	GIMP	flathub	394.3 MB
+org.gnome.Boxes	Boxes	flathub	58.2 MB
+org.gnome.Builder	Builder	flathub	753.1 MB
+org.gnome.Calculator	Calculator	flathub	1.4 MB
+org.gnome.Calendar	Calendar	flathub	69.2 MB
+org.gnome.Characters	Characters	flathub	20.3 MB
+org.gnome.Chess	Chess	flathub	83.4 MB
+org.gnome.Logs	Logs	flathub	4.7 MB
+org.gnome.Maps	Maps	flathub	91.6 MB
+org.gnome.Rhythmbox3	Rhythmbox	flathub	149.6 MB
+org.gnome.TextEditor	Text Editor	flathub	23.1 MB
+org.gnome.Totem	Videos	flathub	133.5 MB
+org.gnome.Weather	Weather	flathub	5.0 MB
+org.gnome.clocks	Clocks	flathub	14.1 MB
+org.inkscape.Inkscape	Inkscape	flathub	623.3 MB
+org.kde.digikam	digiKam	flathub	998.4 MB
+org.kde.kate	Kate	flathub	25.6 MB
+org.kde.kcalc	KCalc	flathub	19.3 MB
+org.kde.kdenlive	Kdenlive	flathub	537.5 MB
+org.kde.kstars	KStars	flathub	427.9 MB
+org.kde.okular	Okular	flathub	60.8 MB
+org.libreoffice.LibreOffice	LibreOffice	flathub	596.2 MB
+org.mozilla.Thunderbird	Thunderbird	flathub	436.6 MB

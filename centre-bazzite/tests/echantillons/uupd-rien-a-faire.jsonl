@@ -1,0 +1,32 @@
+{"level":"DEBUG","msg":"Using rpm-ostree fallback as system driver"}
+{"level":"DEBUG","msg":"rpm-ostree --check reported no updates, verifying via skopeo","module":"system"}
+{"level":"DEBUG","msg":"Executed skopeo fallback check","module":"system","update":false}
+{"level":"DEBUG","msg":"System Updater module status","enabled":true,"disabled_by_config":false,"driver_enabled":true,"update_available":false}
+{"level":"DEBUG","msg":"System update check reported no updates, running the system update to verify","module":"system"}
+{"level":"DEBUG","msg":"System module","module":"system","module_configuration":{"Title":"System","Description":"rpm-ostree","Enabled":true,"MultiUser":false,"DryRun":false,"UserDescription":null}}
+{"level":"INFO","msg":"Updating","module":"system","status":"starting","output":"System module is starting.","title":"System","description":"rpm-ostree","progress":0,"total":4,"step_progress":0,"overall":0}
+{"level":"DEBUG","msg":"Executing update","module":"system","cli":["/usr/bin/rpm-ostree","upgrade"]}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Pulling manifest: ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Checking out tree 2a6c8fa...done"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Enabled rpm-md repositories: fedora updates updates-archive"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Importing rpm-md...done"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"rpm-md repo 'fedora' (cached); generated: 2026-10-30T08:28:54Z solvables: 75855"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"rpm-md repo 'updates' (cached); generated: 2026-11-09T01:02:24Z solvables: 8903"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"rpm-md repo 'updates-archive' (cached); generated: 2026-11-07T01:48:45Z solvables: 6772"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Resolving dependencies...done"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"No upgrade available."}
+{"level":"INFO","msg":"System module has completed.","module":"system","status":"finished","exit_code":0,"output":"System module has completed."}
+{"level":"DEBUG","msg":"Brew module","module":"brew","module_configuration":{"Title":"Brew","Description":"CLI Apps","Enabled":true,"MultiUser":false,"DryRun":false,"UserDescription":null}}
+{"level":"INFO","msg":"Updating","module":"brew","status":"starting","output":"Brew module is starting.","title":"Brew","description":"CLI Apps","progress":1,"total":4,"step_progress":0,"overall":25}
+{"level":"INFO","msg":"Command output","module":"brew","status":"running","output":"==> Updating Homebrew..."}
+{"level":"INFO","msg":"Command output","module":"brew","status":"running","output":"Already up-to-date."}
+{"level":"INFO","msg":"Brew module has completed.","module":"brew","status":"finished","exit_code":0,"output":"Brew module has completed."}
+{"level":"DEBUG","msg":"Flatpak module","module":"flatpak","module_configuration":{"Title":"Flatpak","Description":"System Apps","Enabled":true,"MultiUser":true,"DryRun":false,"UserDescription":"Apps for User:"}}
+{"level":"INFO","msg":"Updating","module":"flatpak","status":"starting","output":"Flatpak module is starting.","title":"Flatpak","description":"System Apps","progress":2,"total":4,"step_progress":0,"overall":50}
+{"level":"INFO","msg":"Command output","module":"flatpak","status":"running","output":""}
+{"level":"INFO","msg":"Command output","module":"flatpak","status":"running","output":"Nothing to update."}
+{"level":"INFO","msg":"Updating","module":"flatpak","status":"running","output":"Updating Flatpak (Apps for User: bazzite)","title":"Flatpak","description":"Apps for User: bazzite","progress":2,"total":4,"step_progress":0,"overall":50}
+{"level":"INFO","msg":"Command output","module":"flatpak","status":"running","output":""}
+{"level":"INFO","msg":"Command output","module":"flatpak","status":"running","output":"Nothing to update."}
+{"level":"INFO","msg":"Flatpak module has completed.","module":"flatpak","status":"finished","exit_code":0,"output":"Flatpak module has completed."}
+{"level":"INFO","msg":"Updates Completed Successfully"}

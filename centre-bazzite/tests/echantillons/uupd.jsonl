@@ -1,0 +1,15 @@
+{"level":"INFO","msg":"Hardware checks passed"}
+{"level":"INFO","msg":"Updating","module":"system","status":"starting","output":"System module is starting.","title":"System","description":"rpm-ostree","progress":0,"total":4,"step_progress":0,"overall":0}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Pulling manifest: ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable"}
+{"level":"INFO","msg":"Command output","module":"system","status":"running","output":"Checking out tree 2a6c8fa...done"}
+{"level":"INFO","msg":"System module has completed.","module":"system","status":"finished","exit_code":0,"output":"System module has completed."}
+{"level":"INFO","msg":"Updating","module":"brew","status":"starting","output":"Brew module is starting.","title":"Brew","description":"CLI Apps","progress":1,"total":4,"step_progress":0,"overall":25}
+{"level":"INFO","msg":"Command output","module":"brew","status":"running","output":"==> Updating Homebrew..."}
+{"level":"INFO","msg":"Command output","module":"brew","status":"running","output":"Updated 3 taps (ublue-os/tap, homebrew/core and homebrew/cask)."}
+{"level":"INFO","msg":"Brew module has completed.","module":"brew","status":"finished","exit_code":0,"output":"Brew module has completed."}
+{"level":"INFO","msg":"Updating","module":"flatpak","status":"starting","output":"Flatpak module is starting.","title":"Flatpak","description":"System Apps","progress":2,"total":4,"step_progress":0,"overall":50}
+{"level":"INFO","msg":"Command output","module":"flatpak","status":"running","output":""}
+{"level":"INFO","msg":"Command output","module":"flatpak","status":"running","output":"Nothing to update."}
+{"level":"INFO","msg":"Updating","module":"flatpak","status":"running","output":"Updating Flatpak (Apps for User: bazzite)","title":"Flatpak","description":"Apps for User: bazzite","progress":2,"total":4,"step_progress":0,"overall":50}
+{"level":"INFO","msg":"Flatpak module has completed.","module":"flatpak","status":"finished","exit_code":0,"output":"Flatpak module has completed."}
+{"level":"INFO","msg":"Updates Completed Successfully"}

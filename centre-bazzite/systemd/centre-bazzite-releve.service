@@ -1,0 +1,18 @@
+[Unit]
+Description=Health Hub : relevé des versions et de l'état de la machine
+Documentation=file://%h/developer/toolbox/centre-bazzite/bin/centre-bazzite
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/centre-bazzite releve
+# contrôles lents (réseau, parcours de dossiers) au plus une fois par 20 h ; un échec ne saute pas rafraichir
+ExecStart=-%h/.local/bin/centre-bazzite controles --si-perime
+ExecStart=%h/.local/bin/centre-bazzite rafraichir
+# disques et volumes pour la page Stockage ; un échec ne fait pas échouer le relevé
+ExecStart=-%h/.local/bin/centre-bazzite stockage
+# analyse des volumes dont le résumé a plus de 7 jours ou a été interrompu par un jeu (reprise après la partie) :
+# lancée dans l'unité health-hub-analyse, elle rend la main aussitôt ; reportée sans échec pendant un jeu
+ExecStart=-%h/.local/bin/centre-bazzite analyser --si-perime
+TimeoutStartSec=30min
+Nice=10
+IOSchedulingClass=idle
