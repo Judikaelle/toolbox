@@ -64,6 +64,11 @@ QtObject {
     readonly property real tailleIntertitre: points(11)  // en capitales, interlettrage de 0,08 em
     readonly property real interlettrage: 11 * 0.08
 
+    // Les cinq phases du démarrage (firmware, chargeur, noyau, initrd, espace utilisateur) : des teintes de l'accent, de la
+    // plus pâle à la pleine ; la légende écrit le nom de chaque phase, la couleur ne porte jamais seule l'information.
+    readonly property var phases: [Qt.alpha(accent, 0.30), Qt.alpha(accent, 0.48), Qt.alpha(accent, 0.66),
+                                   Qt.alpha(accent, 0.83), accent]
+
     readonly property real alphaFond: 0.14
     readonly property real alphaBordure: 0.35
 
@@ -109,6 +114,21 @@ QtObject {
         if (go < 1024)
             return go.toFixed(0) + " Go";
         return arrondi(o / 1099511627776, 1).toFixed(1).replace(".", ",") + " To";
+    }
+
+    // Une durée en secondes, comme demarrage.duree_lisible (testée contre le moteur) : 4,6 s ; 15 s ; 1 min 5 s.
+    function dureeLisible(secondes) {
+        const s = Math.max(0, Number(secondes) || 0);
+        const dixiemes = arrondi(s, 1);
+        if (dixiemes < 10)
+            return dixiemes.toFixed(1).replace(".", ",") + " s";
+        const entier = arrondi(s, 0);
+        if (entier < 60)
+            return entier + " s";
+        const h = Math.floor(entier / 3600);
+        const m = Math.floor((entier % 3600) / 60);
+        const sec = entier % 60;
+        return [h ? h + " h" : "", m ? m + " min" : "", sec ? sec + " s" : ""].filter(x => x !== "").join(" ");
     }
 
     // --- Temps et état global, communs à l'accueil et au menu ---

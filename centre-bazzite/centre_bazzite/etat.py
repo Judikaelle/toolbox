@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from . import commun, inventaire, points as points_mod, rpmostree, sante as sante_mod, taches, uupd
-from . import modejeu as modejeu_mod
+from . import demarrage as demarrage_mod, modejeu as modejeu_mod
 
 FENETRE_ECHECS = timedelta(days=7)
 HISTORIQUE_MAJ_APPS = Path.home() / ".local" / "state" / "maj-apps" / "historique.jsonl"
@@ -230,7 +230,8 @@ def construire(complet=True, *, collecter=sante_mod.collecter,
                deploiements=rpmostree.etat_deploiements, unite_active=uupd.unite_active,
                executions=uupd.executions_depuis, historique=HISTORIQUE_MAJ_APPS,
                session_active=session_maj_active, jeu=commun.jeu_en_cours,
-               ollama=sante_mod.ollama, controles=sante_mod.lire_controles, modejeu=modejeu_mod.resume):
+               ollama=sante_mod.ollama, controles=sante_mod.lire_controles, modejeu=modejeu_mod.resume,
+               demarrage=demarrage_mod.resume):
     fichier = commun.ETAT / "etat.json"
     visites = commun.lire_json(commun.ETAT / "visites.json", {})
     visites = visites if isinstance(visites, dict) else {}
@@ -275,7 +276,11 @@ def construire(complet=True, *, collecter=sante_mod.collecter,
     session = _session_en_cours(session_active)
     unite = None if session else unite_active()
     en_cours = session or ({"unite": unite} if unite else None)
-    pts = points_mod.points(sante, dep, maj_apps, _derniere_session(), uupd=recentes)
+    try:        # le résumé du démarrage (demarrage.json) : illisible, il manque sans rien bloquer
+        resume_demarrage = demarrage()
+    except Exception:
+        resume_demarrage = None
+    pts = points_mod.points(sante, dep, maj_apps, _derniere_session(), uupd=recentes, demarrage=resume_demarrage)
     pts = points_mod.points_avec_sourdines(pts, sante)
     for p in pts:       # la page de chaque point : ses listes « À regarder » suivent les compteurs du menu
         p["rubrique"] = points_mod.rubrique(p["id"])
@@ -308,6 +313,7 @@ def construire(complet=True, *, collecter=sante_mod.collecter,
         "redemarrage": bool((dep or {}).get("en_attente")),
         "jeu": jeu(),       # spec 7.3 : les interfaces proposent d'attendre la fin de la partie
         "modejeu": resume_modejeu,
+        "demarrage": resume_demarrage,
         "depuis_visite": {"depuis": depuis or None, "nombre": len(changements), "chronologie": chrono},
         "derniere_maj": derniere_maj,
         "sante": sante,

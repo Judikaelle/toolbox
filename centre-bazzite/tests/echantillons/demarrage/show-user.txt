@@ -1,0 +1,96 @@
+Id=bazzite-exemple.service
+Description=Réglages de Bazzite pour chaque compte
+ActiveState=inactive
+FragmentPath=/usr/lib/systemd/user/bazzite-exemple.service
+
+Id=dbus-broker.service
+Description=D-Bus User Message Bus
+ActiveState=active
+FragmentPath=/usr/lib/systemd/user/dbus-broker.service
+
+Id=health-hub-modejeu.service
+Description=Health Hub : mode jeu automatique
+ActiveState=active
+FragmentPath=/home/exemple/.config/systemd/user/health-hub-modejeu.service
+
+Id=lanceur.service
+Description=Lanceur d'applications
+ActiveState=active
+FragmentPath=/usr/local/lib/systemd/user/lanceur.service
+
+Id=obex.service
+Description=Bluetooth OBEX service
+ActiveState=inactive
+FragmentPath=/usr/lib/systemd/user/obex.service
+
+Id=outil-perso.service
+Description=Outil perso
+ActiveState=inactive
+FragmentPath=/home/exemple/.config/systemd/user/outil-perso.service
+
+Id=pipewire.service
+Description=PipeWire Multimedia Service
+ActiveState=active
+FragmentPath=/usr/lib/systemd/user/pipewire.service
+
+Id=synchro.service
+Description=Synchronisation des dossiers
+ActiveState=inactive
+FragmentPath=/home/exemple/.config/systemd/user/synchro.service
+
+Id=xdg-user-dirs.service
+Description=User folders update
+ActiveState=inactive
+FragmentPath=/usr/lib/systemd/user/xdg-user-dirs.service
+
+Id=dbus.socket
+Description=D-Bus User Message Bus Socket
+ActiveState=active
+FragmentPath=/usr/lib/systemd/user/dbus.socket
+
+Id=pipewire.socket
+Description=PipeWire Multimedia System Sockets
+ActiveState=active
+FragmentPath=/usr/lib/systemd/user/pipewire.socket
+
+Id=bazzite-health.timer
+Description=Bilan de la semaine
+ActiveState=inactive
+FragmentPath=/home/exemple/.config/systemd/user/bazzite-health.timer
+NextElapseUSecRealtime=
+NextElapseUSecMonotonic=infinity
+
+Id=centre-bazzite-releve.timer
+Description=Health Hub : relevé horaire
+ActiveState=active
+FragmentPath=/home/exemple/.config/systemd/user/centre-bazzite-releve.timer
+NextElapseUSecRealtime=@1794823560
+NextElapseUSecMonotonic=0
+
+Id=maj-apps.timer
+Description=Mises à jour hors uupd, chaque nuit
+ActiveState=active
+FragmentPath=/home/exemple/.config/systemd/user/maj-apps.timer
+NextElapseUSecRealtime=@1794372300
+NextElapseUSecMonotonic=0
+
+Id=sauvegarde-notes.timer
+Description=Sauvegarde des notes
+ActiveState=active
+FragmentPath=/home/exemple/.config/systemd/user/sauvegarde-notes.timer
+NextElapseUSecRealtime=@1794349800
+NextElapseUSecMonotonic=0
+
+Id=synchro.timer
+Description=Synchronisation des dossiers, chaque heure
+ActiveState=inactive
+FragmentPath=/home/exemple/.config/systemd/user/synchro.timer
+NextElapseUSecRealtime=
+NextElapseUSecMonotonic=infinity
+
+Id=systemd-tmpfiles-clean.timer
+Description=Daily Cleanup of User's Temporary Directories
+ActiveState=active
+FragmentPath=/usr/lib/systemd/user/systemd-tmpfiles-clean.timer
+NextElapseUSecRealtime=
+NextElapseUSecMonotonic=1d 2h 9min 3.083835s

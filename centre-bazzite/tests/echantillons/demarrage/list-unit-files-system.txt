@@ -1,0 +1,8 @@
+exemple-impression.service                 enabled enabled
+getty@.service                             enabled enabled
+lecteur-empreintes.service                 enabled disabled
+NetworkManager-wait-online.service         enabled enabled
+NetworkManager.service                     enabled enabled
+systemd-journald.service                   enabled enabled
+fstrim.timer                               enabled enabled
+uupd.timer                                 enabled disabled

@@ -2,7 +2,8 @@
   "compteurs": {
     "majs": 0,
     "sante": 0,
-    "stockage": 0
+    "stockage": 0,
+    "demarrage": 0
   },
   "genere": "2026-11-09T14:58:00",
   "couleur": "en_cours",

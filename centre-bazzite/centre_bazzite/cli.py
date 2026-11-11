@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from . import analyse, commun, etat, hebdo, inventaire, jeux, menage, notes, points, resume, sante, session, stockage, taches
+from . import demarrage   # page Démarrage (v2c)
 from . import modejeu   # mode jeu (Task 5) ; bureau (dbus) n'est importé que par `modejeu service`
 
 BIN = Path(__file__).resolve().parent.parent / "bin" / "centre-bazzite"
@@ -90,6 +91,12 @@ def _parser():
     c.add_argument("--si-orphelin", action="store_true",
                    help="restaurer seulement si le service du mode jeu ne tourne pas (c'est toujours vérifié)")
     # --- fin mode jeu ---
+    c = sous.add_parser("demarrage", help="page Démarrage : relevé, ou coupe et remise d'une entrée de « Au lancement »")
+    c.add_argument("action", nargs="?", default="releve", choices=("releve", "regler", "remettre"),
+                   help="releve (par défaut) : durée, ce qui ralentit, ce qui se lance tout seul (demarrage.json) ; "
+                        "regler ID oui|non ; remettre ID : rend l'état d'avant Health Hub")
+    c.add_argument("arguments", nargs="*", help="l'id de l'entrée (autostart:<fichier>.desktop ou unite:<nom>), "
+                                                 "puis oui ou non pour regler")
     return p
 
 
@@ -324,6 +331,38 @@ def _terminer_tache(id_tache, statut, detail):
         print(f"Tâche du panneau Activité impossible à finir ({type(exc).__name__}: {exc})", file=sys.stderr)
 
 
+def _demarrage(a, *, run, ecrire_leger):
+    """`demarrage` : le relevé republie etat.json (le résumé et le point) ; regler et remettre réécrivent demarrage.json
+    pour que la fenêtre voie l'état nouveau, avec le retour de l'action (id, code, phrase, date) qu'elle montre (I-4) ;
+    le relevé suivant l'efface. La phrase de l'action est la dernière ligne, sur stderr si le code n'est pas 0 ; le
+    code de sortie est celui de l'action."""
+    if a.action == "releve":
+        if a.arguments:
+            print("Usage : centre-bazzite demarrage [releve]", file=sys.stderr)
+            return 2
+        demarrage.ecrire(run=run)
+        _republier_etat(ecrire_leger)
+        print((demarrage.resume() or {}).get("phrase") or "Démarrage relevé.")
+        return 0
+    if a.action == "regler":
+        if len(a.arguments) != 2 or a.arguments[1] not in ("oui", "non"):
+            print("Usage : centre-bazzite demarrage regler ID oui|non", file=sys.stderr)
+            return 2
+        code, phrase = demarrage.regler(a.arguments[0], a.arguments[1] == "oui", run=run)
+    else:
+        if len(a.arguments) != 1:
+            print("Usage : centre-bazzite demarrage remettre ID", file=sys.stderr)
+            return 2
+        code, phrase = demarrage.remettre(a.arguments[0], run=run)
+    retour = {"id": a.arguments[0], "code": code, "phrase": phrase, "date": commun.maintenant()}
+    try:
+        demarrage.ecrire(run=run, retour=retour)
+    except Exception as exc:        # l'action est faite : son code et sa phrase passent avant
+        print(f"demarrage.json non republié : {exc}", file=sys.stderr)
+    print(phrase, file=sys.stdout if code == 0 else sys.stderr)
+    return code
+
+
 def _pause_du_releve(cmd, environ, jeu):
     """D10 : le nom du jeu si cette commande du relevé horaire attend la fin de la partie, sinon None. Jamais hors du
     relevé (fenêtre, terminal) ; des réglages illisibles ne reportent rien."""
@@ -434,6 +473,8 @@ def main(argv=None, *, run=commun.run, notes_pour=notes.notes_pour, resumer=resu
         return _bilan(a, ecrire_etat)
     elif cmd == "modejeu":
         return _modejeu(a, run=run, jeu=jeu, ecrire_leger=ecrire_leger, bureau=bureau)
+    elif cmd == "demarrage":
+        return _demarrage(a, run=run, ecrire_leger=ecrire_leger)
     return 0
 
 

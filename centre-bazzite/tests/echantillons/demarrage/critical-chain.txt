@@ -1,0 +1,15 @@
+The time when unit became active or started is printed after the "@" character.
+The time the unit took to start is printed after the "+" character.
+
+graphical.target @1min 2.345s
+`-multi-user.target @1min 2.345s
+  `-greenboot-healthcheck.service @8.197s +239ms
+    `-network-online.target @8.196s
+      `-NetworkManager-wait-online.service @3.616s +4.580s
+        `-NetworkManager.service @3.395s +219ms
+          `-basic.target @3.140s
+            `-dbus-broker.service @3.102s +38ms
+              `-sysinit.target @3.075s
+                `-local-fs.target @1.506s
+                  `-swap.target @736ms
+                    `-dev-zram0.device @596ms

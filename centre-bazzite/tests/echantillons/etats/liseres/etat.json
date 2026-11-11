@@ -1,5 +1,5 @@
 {
- "compteurs": {"majs": 0, "sante": 2, "stockage": 0},
+ "compteurs": {"majs": 0, "sante": 2, "stockage": 0, "demarrage": 0},
  "sante": {
   "ssd": [
    {

@@ -15,14 +15,16 @@ Kirigami.ApplicationWindow {
         "majs": "MisesAJourPage.qml",
         "sante": "SantePage.qml",
         "stockage": "StockagePage.qml",
-        "jeux": "JeuxPage.qml"
+        "jeux": "JeuxPage.qml",
+        "demarrage": "DemarragePage.qml"
     })
     property string page: pageInitiale
-    // Onglet ouvert des pages Stockage, Santé et Jeux (Task 19) : quitter la page puis y revenir rouvre le même ; le
+    // Onglet ouvert des pages Stockage, Santé, Jeux et Démarrage (Task 19) : quitter la page puis y revenir rouvre le même ; le
     // lanceur peut le choisir (--onglet, captures).
     property string ongletStockage: "ensemble"
     property string ongletSante: "resume"
     property string ongletJeux: "ensemble"
+    property string ongletDemarrage: "duree"
     // Le filtre de l'onglet Bibliothèques de Jeux : "" (toutes), "doublons", ou l'id d'une bibliothèque.
     property string filtreJeux: ""
     // « auto » : le menu se déplie si la place le permet ; « deplie » / « replie » : choix de l'utilisateur.

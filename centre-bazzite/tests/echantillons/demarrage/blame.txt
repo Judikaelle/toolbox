@@ -1,0 +1,9 @@
+1min 5.123s maj-auto.service
+5.002s dracut-pre-udev.service
+4.580s NetworkManager-wait-online.service
+2.189s dev-disk-by\x2dlabel-EXTERNE.device
+1.560s bootc-update-ca-trust.service
+1.204s plymouth-quit-wait.service
+ 612ms systemd-udev-trigger.service
+ 239ms greenboot-healthcheck.service
+  19ms systemd-zram-setup@zram0.service

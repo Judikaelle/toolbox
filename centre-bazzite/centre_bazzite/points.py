@@ -2,7 +2,7 @@
 import re
 from datetime import datetime
 
-from . import commun, sante as sante_mod
+from . import commun, demarrage as demarrage_mod, sante as sante_mod
 
 MIN_POURCENT = 10
 MIN_GIO = 15
@@ -322,9 +322,9 @@ def _points_reportes(maj_apps):
     return res
 
 
-def points(sante, deploiements, maj_apps=None, session=None, uupd=None, maintenant=None):
+def points(sante, deploiements, maj_apps=None, session=None, uupd=None, maintenant=None, demarrage=None):
     """`uupd` : exécutions récentes de uupd (journal) ; `maj_apps` : dernière ligne de résultats de
-    maj-apps ; `session` : dernière session « Tout mettre à jour » archivée."""
+    maj-apps ; `session` : dernière session « Tout mettre à jour » archivée ; `demarrage` : le résumé du démarrage."""
     maintenant = maintenant or datetime.now()
     sante = sante or {}
     res = _points_echecs(uupd, maj_apps, session)
@@ -362,6 +362,14 @@ def points(sante, deploiements, maj_apps=None, session=None, uupd=None, maintena
                               "Le service occupe de la mémoire pour rien. Arrête-le : systemctl --user stop ollama.service",
                               h, 4, {"libelle": "Arrêter Ollama",
                                      "commande": ["systemctl", "--user", "stop", "ollama.service"]}))
+
+    lent = (demarrage or {}).get("lent")
+    if lent:
+        res.append(_point("demarrage:lent", "attention",
+                          f"Le démarrage est plus lent : {demarrage_mod.duree_lisible(lent['total'])} "
+                          f"au lieu de {demarrage_mod.duree_lisible(lent['reference'])}",
+                          "Les 3 derniers démarrages ont été nettement plus longs que d'habitude. "
+                          "La page Démarrage montre ce qui ralentit.", lent["total"], 5))
 
     err = sante.get("erreurs_journal")
     if err:
@@ -478,7 +486,8 @@ def couleur(points_, en_cours):
 
 
 # Rubrique d'un point : le premier préfixe qui correspond, sinon « sante ».
-RUBRIQUES = {"majs": ("maj:", "redemarrage:", "session:"), "stockage": ("volume:", "menage:", "stockage:")}
+RUBRIQUES = {"majs": ("maj:", "redemarrage:", "session:"), "stockage": ("volume:", "menage:", "stockage:"),
+             "demarrage": ("demarrage:",)}
 
 
 def rubrique(point_id):
@@ -516,7 +525,7 @@ def domaine(point_id):
 
 def compteurs(points_):
     """Nombre de points à regarder par rubrique : hors sourdine, hors info (sauf « mise à jour disponible »)."""
-    n = {"majs": 0, "sante": 0, "stockage": 0}
+    n = {"majs": 0, "sante": 0, "stockage": 0, "demarrage": 0}
     for p in points_:
         if p.get("en_sourdine"):
             continue

@@ -431,6 +431,7 @@
  "compteurs": {
   "majs": 1,
   "sante": 1,
-  "stockage": 0
+  "stockage": 0,
+  "demarrage": 0
  }
 }

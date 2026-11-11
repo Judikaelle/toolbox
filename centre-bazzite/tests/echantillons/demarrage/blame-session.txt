@@ -1,0 +1,5 @@
+12.345s synchro.service
+ 7.210s lanceur.service
+ 5.500s app-messagerie@autostart.service
+ 2.104s outil-perso.service
+  866ms xdg-desktop-portal.service

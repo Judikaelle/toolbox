@@ -1,5 +1,5 @@
 {
- "compteurs": {"majs": 0, "sante": 0, "stockage": 2},
+ "compteurs": {"majs": 0, "sante": 0, "stockage": 2, "demarrage": 0},
  "genere": "2026-11-09T16:20:19",
  "couleur": "orange",
  "phrase": "Une chose mérite un coup d'œil.",

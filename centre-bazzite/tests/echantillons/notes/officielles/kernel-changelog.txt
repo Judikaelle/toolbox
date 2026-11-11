@@ -1,0 +1,38 @@
+commit 1111111111111111111111111111111111111111
+Author: Auteur Exemple <auteur@exemple.test>
+Date:   Mon Jan 1 10:00:00 2030 +0000
+
+    Linux 5.9.4
+    
+    Signed-off-by: Auteur Exemple <auteur@exemple.test>
+
+commit 2222222222222222222222222222222222222222
+Author: Auteur Exemple <auteur@exemple.test>
+Date:   Mon Jan 1 09:00:00 2030 +0000
+
+    net: corriger une fuite inventée
+    
+    [ Upstream commit 3333333333333333333333333333333333333333 ]
+    
+    Le corps du message est ignoré.
+
+commit 4444444444444444444444444444444444444444
+Author: Auteur Exemple <auteur@exemple.test>
+Date:   Mon Jan 1 08:00:00 2030 +0000
+
+    drm/exemple: corriger un écran noir inventé
+    
+    Corps ignoré.
+
+commit 5555555555555555555555555555555555555555
+Author: Auteur Exemple <auteur@exemple.test>
+Date:   Mon Jan 1 07:00:00 2030 +0000
+
+    net: corriger une fuite inventée
+
+commit 6666666666666666666666666666666666666666
+Author: Auteur Exemple <auteur@exemple.test>
+Date:   Mon Jan 1 06:00:00 2030 +0000
+
+    usb: ne plus geler au branchement inventé
+

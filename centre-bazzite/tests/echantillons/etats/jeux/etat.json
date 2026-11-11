@@ -2,7 +2,8 @@
  "compteurs": {
   "majs": 0,
   "sante": 0,
-  "stockage": 2
+  "stockage": 2,
+  "demarrage": 0
  },
  "genere": "2026-11-10T09:00:00",
  "couleur": "orange",

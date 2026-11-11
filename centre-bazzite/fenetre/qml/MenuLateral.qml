@@ -32,12 +32,11 @@ Rectangle {
         { "nom": "majs", "texte": "Mises à jour", "icone": "view-refresh", "compteur": "majs" },
         { "nom": "sante", "texte": "Santé", "icone": "love", "compteur": "sante" },
         { "nom": "stockage", "texte": "Stockage", "icone": "drive-harddisk", "compteur": "stockage" },
-        { "nom": "jeux", "texte": "Jeux", "icone": "applications-games", "compteur": "" }
+        { "nom": "jeux", "texte": "Jeux", "icone": "applications-games", "compteur": "" },
+        { "nom": "demarrage", "texte": "Démarrage", "icone": "chronometer", "compteur": "demarrage" }
     ]
-    // Pas encore disponibles : grisées, sous l'intertitre « BIENTÔT ».
-    readonly property var bientot: [
-        { "nom": "demarrage", "texte": "Démarrage", "icone": "chronometer", "compteur": "" }
-    ]
+    // Pas encore disponibles : grisées, sous l'intertitre « BIENTÔT » (qui disparaît quand la liste est vide).
+    readonly property var bientot: []
 
     function nombre(entree) {
         return entree.compteur === "" ? 0 : (compteurs[entree.compteur] ?? 0);
@@ -120,13 +119,15 @@ Rectangle {
                 }
 
                 Intertitre {
-                    visible: menu.deplie
+                    objectName: "menu-bientot"
+                    visible: menu.deplie && menu.bientot.length > 0
                     Layout.topMargin: Style.espace(3)
                     Layout.leftMargin: Style.espace(2)
                     text: "BIENTÔT"
                 }
                 Kirigami.Separator {
-                    visible: !menu.deplie
+                    objectName: "menu-bientot-trait"
+                    visible: !menu.deplie && menu.bientot.length > 0
                     color: Style.ligne
                     Layout.fillWidth: true
                     Layout.topMargin: Style.espace(2)

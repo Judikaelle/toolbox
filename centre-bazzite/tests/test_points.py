@@ -265,7 +265,7 @@ class Controles(unittest.TestCase):
         self.assertEqual((j["gravite"], j["mesure"], j["cran"]), ("attention", 1.5, 1.0))
         self.assertIn("sudo journalctl --vacuum-size=500M", j["detail"])
         self.assertIn("1,5 Go", j["titre"])
-        self.assertEqual(P.compteurs(list(p.values())), {"majs": 0, "sante": 0, "stockage": 3})
+        self.assertEqual(P.compteurs(list(p.values())), {"majs": 0, "sante": 0, "stockage": 3, "demarrage": 0})
 
     def test_journal_sous_un_gio_rien(self):
         c = controles(caches={"miniatures": 0, "corbeille": 0, "journal": GIO - 1})
@@ -355,6 +355,23 @@ class Rubriques(unittest.TestCase):
         self.assertEqual(P.rubrique("volume:/var/mnt/EXTERNE"), "stockage")
         self.assertEqual(P.rubrique("ssd:X:usure"), "sante")
 
+    def test_rubrique_demarrage(self):
+        self.assertEqual(P.rubrique("demarrage:lent"), "demarrage")
+        self.assertEqual(P.domaine("demarrage:lent"), "systeme")        # DOMAINES inchangé
+        pts = [P._point("demarrage:lent", "attention", "t", "d", 57, 5), P._point("ssd:X:usure", "attention", "t", "d")]
+        self.assertEqual(P.compteurs(pts), {"majs": 0, "sante": 1, "stockage": 0, "demarrage": 1})
+
+    def test_point_demarrage_lent(self):
+        self.assertNotIn("demarrage:lent", par_id(calculer(sante())))
+        self.assertNotIn("demarrage:lent", par_id(calculer(sante(), demarrage={"total": 40.0, "lent": None})))
+        p = par_id(calculer(sante(), demarrage={"total": 57.0, "lent": {"total": 57.0, "reference": 40.0}}))
+        d = p["demarrage:lent"]
+        self.assertEqual(d["gravite"], "attention")
+        self.assertEqual(d["titre"], "Le démarrage est plus lent : 57 s au lieu de 40 s")
+        self.assertEqual(d["detail"], "Les 3 derniers démarrages ont été nettement plus longs que d'habitude. "
+                                      "La page Démarrage montre ce qui ralentit.")
+        self.assertEqual((d["mesure"], d["cran"], d["action"]), (57.0, 5.0, None))
+
     def test_rubrique_stockage(self):
         for id_ in ("volume:/var/mnt/EXTERNE", "volume:/boot", "menage:runtimes", "menage:journal",
                     "stockage:erreurs-es", "stockage:non-monte:/var/mnt/DONNEES"):
@@ -410,7 +427,7 @@ class Rubriques(unittest.TestCase):
                P._point("maj:echec:uupd:x", "echec", "t", "d"),
                P._point("journal:erreurs", "info", "t", "d"),
                dict(P._point("service:x", "attention", "t", "d"), en_sourdine=True)]
-        self.assertEqual(P.compteurs(pts), {"majs": 1, "sante": 0, "stockage": 1})
+        self.assertEqual(P.compteurs(pts), {"majs": 1, "sante": 0, "stockage": 1, "demarrage": 0})
 
     def test_compteurs_comptent_les_mises_a_jour_disponibles(self):
         pts = [P._point("maj:dispo:flatpak", "info", "t", "d")]

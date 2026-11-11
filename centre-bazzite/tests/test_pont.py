@@ -384,6 +384,86 @@ class Taches(Base):
                 self.pont(dict(ETAT, jeu=None, modejeu=modejeu)).rafraichirJeux()
                 self.assertEqual(self.appels, [["centre-bazzite", "jeux"], ["centre-bazzite", "stockage"], RAFRAICHIR])
 
+    def test_rafraichir_demarrage_lance_la_cli(self):
+        """Ouverture de la page Démarrage : un seul relevé, `centre-bazzite demarrage` (il republie l'état lui-même)."""
+        self.pont().rafraichirDemarrage()
+        self.assertEqual(self.appels, [["centre-bazzite", "demarrage"]])
+
+    def test_regler_et_remettre_demarrage_commandes(self):
+        p = self.pont()
+        p.reglerDemarrage("autostart:messagerie.desktop", False)
+        p.reglerDemarrage("unite:synchro.timer", True)
+        p.remettreDemarrage("autostart:indexation.desktop")
+        self.assertEqual(self.appels, [["centre-bazzite", "demarrage", "regler", "autostart:messagerie.desktop", "non"],
+                                       ["centre-bazzite", "demarrage", "regler", "unite:synchro.timer", "oui"],
+                                       ["centre-bazzite", "demarrage", "remettre", "autostart:indexation.desktop"]])
+
+    def test_demarrage_occupe_jusqu_a_la_reponse_de_la_cli(self):
+        """I-4 : une bascule ou une remise lancée par la fenêtre rend sa ligne « occupée » jusqu'à la réponse de sa
+        commande (demarrage.json réécrit, `genere` changé, avec le retour de cette entrée). Un second clic sur la même
+        ligne ne relance rien ; un relevé qui finit entre-temps ne la libère pas."""
+        ecrire_atomique(self.dossier / "demarrage.json", {"genere": "2026-11-10T21:00:00", "retour": None})
+        p = self.pont()
+        changements = []
+        p.demarrageOccupeChange.connect(lambda: changements.append(list(p.demarrageOccupes)))
+        self.assertEqual(p.demarrageOccupes, [])
+        p.reglerDemarrage("unite:synchro.timer", False)
+        p.reglerDemarrage("unite:synchro.timer", False)                 # double clic
+        p.remettreDemarrage("unite:synchro.timer")                      # même ligne, déjà occupée
+        self.assertEqual(self.appels, [["centre-bazzite", "demarrage", "regler", "unite:synchro.timer", "non"]])
+        p.remettreDemarrage("autostart:messagerie.desktop")             # une autre ligne
+        self.assertEqual(p.property("demarrageOccupes"), ["unite:synchro.timer", "autostart:messagerie.desktop"])
+        ecrire_atomique(self.dossier / "demarrage.json", {"genere": "2026-11-10T21:00:01", "retour": None})
+        attendre(3000, lambda: p.demarrage.get("genere") == "2026-11-10T21:00:01")
+        self.assertEqual(p.demarrageOccupes, ["unite:synchro.timer", "autostart:messagerie.desktop"])
+        retour = {"id": "unite:synchro.timer", "code": 0, "phrase": "Minuteur « synchro.timer » arrêté.",
+                  "date": "2026-11-10T21:00:02"}
+        ecrire_atomique(self.dossier / "demarrage.json", {"genere": "2026-11-10T21:00:02", "retour": retour})
+        attendre(3000, lambda: "unite:synchro.timer" not in p.demarrageOccupes)
+        self.assertEqual(p.demarrageOccupes, ["autostart:messagerie.desktop"])
+        p.reglerDemarrage("unite:synchro.timer", True)                  # libre : elle repart
+        self.assertEqual(self.appels[-1], ["centre-bazzite", "demarrage", "regler", "unite:synchro.timer", "oui"])
+        self.assertEqual(p.demarrageOccupes, ["autostart:messagerie.desktop", "unite:synchro.timer"])
+        self.assertEqual(changements[:2], [["unite:synchro.timer"],
+                                           ["unite:synchro.timer", "autostart:messagerie.desktop"]])
+
+    def test_demarrage_occupe_rendu_apres_le_delai(self):
+        """Sans réponse (CLI absente, demarrage.json impossible à écrire), la ligne revient au bout de 30 s."""
+        self.assertEqual(pont.ATTENTE_DEMARRAGE_MS, 30000)
+        p = self.pont()
+        p._delai_demarrage.setInterval(50)
+        p.reglerDemarrage("unite:synchro.timer", False)
+        self.assertEqual(p.demarrageOccupes, ["unite:synchro.timer"])
+        attendre(2000, lambda: not p.demarrageOccupes)
+        self.assertEqual(p.demarrageOccupes, [])
+
+    def test_demarrage_pas_occupe_si_rien_n_est_parti(self):
+        """La CLI qui ne part pas (startDetached en échec) n'occupe pas la ligne : on peut recliquer."""
+        with mock.patch.object(QProcess, "startDetached",
+                               lambda prog, args: self.appels.append([prog] + list(args)) or (False, 0)):
+            p = self.pont()
+            p.reglerDemarrage("unite:synchro.timer", False)
+            self.assertEqual(p.demarrageOccupes, [])
+            p.reglerDemarrage("unite:synchro.timer", False)
+        self.assertEqual(len(self.appels), 2)
+
+    def test_demarrage_lu_depuis_le_dossier(self):
+        p = self.pont()
+        self.assertEqual(p.demarrage, {})                               # pas encore de relevé
+        releve = {"genere": "2026-11-10T09:00:00+00:00", "duree": {"total": 40.4, "phases": []}, "erreurs": []}
+        signaux = []
+        p.demarrageChange.connect(lambda: signaux.append(1))
+        ecrire_atomique(self.dossier / "demarrage.json", releve)
+        attendre(3000, lambda: p.demarrage)
+        self.assertEqual(p.property("demarrage")["duree"]["total"], 40.4)
+        self.assertTrue(signaux)
+        (self.dossier / "demarrage.json").write_text("{ coupé", encoding="utf-8")
+        p.recharger()
+        self.assertEqual(p.demarrage, releve)                           # illisible : le relevé précédent reste
+        ecrire_atomique(self.dossier / "demarrage.json", dict(releve, erreurs=["Durée illisible (systemd-analyze : x)"]))
+        attendre(3000, lambda: p.demarrage.get("erreurs"))
+        self.assertEqual(p.demarrage["erreurs"], ["Durée illisible (systemd-analyze : x)"])
+
     def test_jeux_lu_depuis_le_dossier(self):
         p = self.pont()
         self.assertEqual(p.jeux, {})                                    # pas encore de relevé
@@ -592,8 +672,15 @@ class Taches(Base):
         p.ouvrirDossierGels()
         p.reglerModeJeu("ollama", False)
         p.restaurerModeJeu()
+        ecrire_atomique(self.dossier / "demarrage.json", {"lancement": {"entrees": [{"id": "unite:synchro.timer"}]}})
+        p.recharger()
+        self.assertEqual(p.demarrage["lancement"]["entrees"][0]["id"], "unite:synchro.timer")   # chargé, puis rien ne part
+        p.rafraichirDemarrage()
+        p.reglerDemarrage("unite:synchro.timer", False)
+        p.remettreDemarrage("unite:synchro.timer")
         self.assertEqual(self.appels, [])
         self.assertFalse(p.restaurationEnCours)              # rien n'est parti : rien n'est attendu
+        self.assertEqual(p.demarrageOccupes, [])
 
     CACHES = [{"cible": "/a", "libelle": "a", "octets": 10, "taille": "0 Mo"},
               {"cible": "/b", "libelle": "b", "octets": 20, "taille": "0 Mo"}]

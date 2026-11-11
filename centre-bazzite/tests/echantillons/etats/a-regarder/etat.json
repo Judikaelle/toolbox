@@ -2,7 +2,8 @@
   "compteurs": {
     "majs": 3,
     "sante": 1,
-    "stockage": 4
+    "stockage": 4,
+    "demarrage": 0
   },
   "genere": "2026-11-09T16:20:19",
   "couleur": "rouge",

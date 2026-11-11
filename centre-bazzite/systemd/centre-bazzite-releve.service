@@ -9,6 +9,10 @@ Environment=HEALTH_HUB_RELEVE=1
 # d'abord, la restauration de secours : service du mode jeu mort, partie ouverte, plus de jeu → bureau remis comme avant
 ExecStart=-%h/.local/bin/centre-bazzite modejeu restaurer --si-orphelin
 ExecStart=%h/.local/bin/centre-bazzite releve
+# page Démarrage : durée, ce qui ralentit, ce qui se lance tout seul (léger, jamais reporté pendant un jeu) ;
+# avant controles et rafraichir, pour que le point « démarrage plus lent » soit à jour ; un échec ne fait pas
+# échouer le relevé
+ExecStart=-%h/.local/bin/centre-bazzite demarrage
 # contrôles lents (réseau, parcours de dossiers) au plus une fois par 20 h ; un échec ne saute pas rafraichir
 ExecStart=-%h/.local/bin/centre-bazzite controles --si-perime
 ExecStart=%h/.local/bin/centre-bazzite rafraichir

@@ -16,6 +16,9 @@ Rectangle {
     default property alias contenu: interieur.data
 
     readonly property bool teintee: teinte.a > 0 && !halo
+    // Où commence le contenu dans la carte (marge, titre et son espacement) : une liste bornée au reste de l'écran
+    // en déduit la place qui lui revient.
+    readonly property real decalageContenu: Style.margeCarte + interieur.y
 
     implicitWidth: colonne.implicitWidth + 2 * Style.margeCarte
     implicitHeight: colonne.implicitHeight + 2 * Style.margeCarte

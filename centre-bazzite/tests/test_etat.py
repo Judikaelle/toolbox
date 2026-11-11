@@ -133,7 +133,7 @@ class Construire(Base):
             self.assertIn(k, e)
 
     def test_etat_contient_les_compteurs(self):
-        self.assertEqual(set(self.construire()["compteurs"]), {"majs", "sante", "stockage"})
+        self.assertEqual(set(self.construire()["compteurs"]), {"majs", "sante", "stockage", "demarrage"})
 
     def test_chaque_point_porte_sa_rubrique(self):
         """Revue finale I3 : les listes « À regarder » des pages filtrent sur ce champ, calculé par points.rubrique,
@@ -354,6 +354,28 @@ class Construire(Base):
         def panne():
             raise ValueError("modejeu.json abîmé")
         self.assertIsNone(self.construire(modejeu=panne)["modejeu"])
+
+    def test_etat_contient_demarrage(self):
+        """Task 1 (v2c) : le résumé du démarrage, en complet comme en léger ; en panne, None ; le point passe aux points."""
+        import inspect
+        from centre_bazzite import demarrage
+        self.assertIs(inspect.signature(etat.construire).parameters["demarrage"].default, demarrage.resume)
+        resume = {"total": 57.0, "habituel": 40.0, "phrase": "Démarré en 57 s · habituel : 40 s",
+                  "lent": {"total": 57.0, "reference": 40.0}}
+        for complet in (True, False):
+            with self.subTest(complet=complet):
+                e = self.construire(complet=complet, demarrage=lambda: resume)
+                self.assertEqual(e["demarrage"], resume)
+                self.assertIn("demarrage:lent", [p["id"] for p in e["points"]])
+                self.assertEqual(e["compteurs"]["demarrage"], 1)
+                lent = next(p for p in e["points"] if p["id"] == "demarrage:lent")
+                self.assertEqual(lent["rubrique"], "demarrage")
+
+        def panne():
+            raise ValueError("demarrage.json abîmé")
+        e = self.construire(demarrage=panne)
+        self.assertIsNone(e["demarrage"])
+        self.assertNotIn("demarrage:lent", [p["id"] for p in e["points"]])
 
     def test_modejeu_par_defaut_lu_dans_commun_etat(self):
         """Sans injection : modejeu.json du dossier d'état (absent ici), donc le service ne tourne pas."""

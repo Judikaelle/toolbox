@@ -26,6 +26,8 @@ RECENTE = timedelta(hours=24)
 RESTAURATION = "modejeu:restaurer"
 ATTENTE_RESTAURATION_MS = 120000
 SANS_NOUVELLES = "Pas de nouvelles de la remise du bureau : regarde le panneau Activité."
+# I-4 : une ligne de « Au lancement » reste « occupée » jusqu'à la réponse de sa commande, au plus ce délai.
+ATTENTE_DEMARRAGE_MS = 30000
 # Les étapes d'une session « Tout mettre à jour », dans l'ordre du moteur (copie de session.ETAPES + extinction).
 ORDRE_ETAPES = ("uupd", "maj-apps", "notes", "resume", "etat", "extinction")
 NOMS_ETAPES = {"uupd": "Mise à jour du système", "maj-apps": "Mise à jour des outils",
@@ -87,6 +89,8 @@ class Pont(QObject):
     tachesChange = Signal()
     stockageChange = Signal()
     jeuxChange = Signal()
+    demarrageChange = Signal()
+    demarrageOccupeChange = Signal()
     restaurationChange = Signal()
 
     def __init__(self, chemin=ETAT_JSON, intervalle_ms=INTERVALLE_SUIVI_MS, parent=None, presse_papiers=None,
@@ -99,6 +103,7 @@ class Pont(QObject):
         self._taches = []
         self._stockage = {}
         self._jeux = {}
+        self._demarrage = {}
         self._presse_papiers = presse_papiers
         self._tours_restants = 0
         self._veilleur = QFileSystemWatcher(self)
@@ -115,6 +120,13 @@ class Pont(QObject):
         self._delai_restauration.setSingleShot(True)
         self._delai_restauration.setInterval(ATTENTE_RESTAURATION_MS)
         self._delai_restauration.timeout.connect(self._sans_nouvelles)
+        # I-4 : les lignes de « Au lancement » dont la commande tourne -> `genere` de demarrage.json au clic.
+        self._occupes = {}
+        self._delai_demarrage = QTimer(self)
+        self._delai_demarrage.setSingleShot(True)
+        self._delai_demarrage.setInterval(ATTENTE_DEMARRAGE_MS)
+        self._delai_demarrage.timeout.connect(self._liberer_demarrage)
+        self.demarrageChange.connect(self._suivre_demarrage)
         try:
             self._chemin.parent.mkdir(parents=True, exist_ok=True)
         except OSError:
@@ -161,6 +173,16 @@ class Pont(QObject):
 
     jeux = Property("QVariantMap", _lire_jeux, notify=jeuxChange)
 
+    def _lire_demarrage(self):
+        return self._demarrage
+
+    demarrage = Property("QVariantMap", _lire_demarrage, notify=demarrageChange)
+
+    def _lire_occupes(self):
+        return list(self._occupes)
+
+    demarrageOccupes = Property("QVariantList", _lire_occupes, notify=demarrageOccupeChange)
+
     def _lire_en_restauration(self):
         return self._en_restauration
 
@@ -173,7 +195,7 @@ class Pont(QObject):
 
     @Slot()
     def recharger(self):
-        """Relit etat.json, stockage.json, jeux.json et les tâches ; un fichier absent ou illisible garde l'état
+        """Relit etat.json, stockage.json, jeux.json, demarrage.json et les tâches ; un fichier absent ou illisible garde l'état
         précédent."""
         self._surveiller()
         try:
@@ -197,6 +219,13 @@ class Pont(QObject):
         if isinstance(jeux, dict) and jeux != self._jeux:
             self._jeux = jeux
             self.jeuxChange.emit()
+        try:
+            demarrage = json.loads((self._chemin.parent / "demarrage.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            demarrage = None
+        if isinstance(demarrage, dict) and demarrage != self._demarrage:
+            self._demarrage = demarrage
+            self.demarrageChange.emit()
         taches = self._calculer_taches()
         if taches != self._taches:
             self._taches = taches
@@ -315,6 +344,48 @@ class Pont(QObject):
             self._cli("jeux")
             self._cli("stockage")
         self._cli("rafraichir", "--leger")
+
+    @Slot()
+    def rafraichirDemarrage(self):
+        """Ouverture de la page Démarrage : relève la durée, ce qui se lance tout seul et les services (lecture seule)."""
+        self._cli("demarrage")
+
+    @Slot(str, bool)
+    def reglerDemarrage(self, id_, actif):
+        """Une bascule de « Au lancement » : la CLI revérifie que l'entrée est modifiable (id verrouillé ou inconnu :
+        refusé, rien n'est touché). Elle republie demarrage.json, avec son retour, que le pont relit."""
+        self._occuper(id_, "regler", id_, "oui" if actif else "non")
+
+    @Slot(str)
+    def remettreDemarrage(self, id_):
+        """« Remettre comme avant » : la CLI rend l'état noté au journal, seulement si l'entrée n'a pas changé depuis."""
+        self._occuper(id_, "remettre", id_)
+
+    def _occuper(self, id_, *arguments):
+        """Lance `demarrage <arguments>` pour une ligne libre ; partie, la ligne est « occupée » (I-4) : un second clic
+        ne relance rien. Rien ne part sur un état forcé (V46)."""
+        if id_ in self._occupes or not self._cli("demarrage", *arguments):
+            return
+        self._occupes[id_] = self._demarrage.get("genere")
+        self._delai_demarrage.start()
+        self.demarrageOccupeChange.emit()
+
+    def _suivre_demarrage(self):
+        """La réponse d'une commande : demarrage.json réécrit (`genere` changé) avec le retour de son entrée. Un relevé
+        qui finit entre-temps (sans ce retour) ne libère pas la ligne."""
+        retour = self._demarrage.get("retour")
+        id_ = retour.get("id") if isinstance(retour, dict) else None
+        if id_ in self._occupes and self._demarrage.get("genere") != self._occupes[id_]:
+            del self._occupes[id_]
+            if not self._occupes:
+                self._delai_demarrage.stop()
+            self.demarrageOccupeChange.emit()
+
+    def _liberer_demarrage(self):
+        """Pas de réponse à temps (CLI absente, demarrage.json impossible à écrire) : les lignes reviennent."""
+        if self._occupes:
+            self._occupes.clear()
+            self.demarrageOccupeChange.emit()
 
     def _gels(self):
         gels = self._jeux.get("gels")

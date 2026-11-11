@@ -1,0 +1,20 @@
+Id=exemple-impression.service
+Description=Service d'impression
+
+Id=lecteur-empreintes.service
+Description=Lecteur d'empreintes digitales
+
+Id=NetworkManager-wait-online.service
+Description=Network Manager Wait Online
+
+Id=NetworkManager.service
+Description=Network Manager
+
+Id=systemd-journald.service
+Description=Journal Service
+
+Id=fstrim.timer
+Description=Discard unused filesystem blocks once a week
+
+Id=uupd.timer
+Description=Universal Update Timer

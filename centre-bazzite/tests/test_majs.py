@@ -130,6 +130,41 @@ class DetailDUneSession(Base):
         self.assertEqual(self.f.objets("vide-visite"), [])
 
 
+class SourceOfficielle(Base):
+    """Task 6 (v2c) : la ligne dépliée d'un changement dit en toutes lettres ce qu'il y a (ou pas) comme notes."""
+    dossier = "majs-officielles"
+
+    def deplier(self, ident):
+        self.f.choisir("visite")
+        self.f.objet("page-majs").setProperty("changementOuvert", ident)
+        attendre(100)
+
+    def visible(self, nom):
+        return self.f.objet(nom) is not None and self.f.objet(nom).property("visible")
+
+    def test_source_en_echec_phrase_et_lien(self):
+        self.deplier("nvidia-driver")
+        self.assertEqual(self.f.objet("resume-nvidia-driver").property("text"),
+                         "Notes officielles non récupérées pour l'instant : ouvre-les sur le site.")
+        self.assertTrue(self.visible("source-nvidia-driver"))
+        self.assertTrue(self.visible("ouvrir-notes-nvidia-driver"))
+        self.assertFalse(self.visible("notes-origine-nvidia-driver"))
+
+    def test_resume_officiel_affiche(self):
+        self.deplier("plasma-workspace")
+        self.assertEqual(self.f.objet("resume-plasma-workspace").property("text"),
+                         "Plasma corrige des plantages du bureau et améliore les notifications.")
+        self.assertTrue(self.visible("ouvrir-notes-plasma-workspace"))
+        self.assertTrue(self.visible("notes-origine-plasma-workspace"))
+
+    def test_notes_sans_resume_phrase_inchangee(self):
+        self.deplier("kernel")
+        self.assertEqual(self.f.objet("resume-kernel").property("text"),
+                         "Pas de résumé : pas de notes de version trouvées.")
+        self.assertTrue(self.visible("notes-origine-kernel"))
+        self.assertTrue(self.visible("ouvrir-notes-kernel"))
+
+
 class TitreDuRedemarrage(unittest.TestCase):
     """Task 9 : la colonne de droite est étroite, à côté de deux boutons ; le titre du redémarrage, long, ne dépasse pas
     deux lignes à 1100 px (le reste est abrégé)."""

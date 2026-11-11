@@ -468,11 +468,17 @@ Item {
 
                             Controls.Label {
                                 Layout.fillWidth: true
-                                text: page.resumes[rang.modelData.id] ?? "Pas de résumé : pas de notes de version trouvées."
+                                objectName: "resume-" + rang.modelData.id
+                                // Sans résumé : si la source officielle a échoué (lien sans texte), on le dit.
+                                text: page.resumes[rang.modelData.id]
+                                      ?? (rang.note?.lien && !rang.note?.texte
+                                          ? "Notes officielles non récupérées pour l'instant : ouvre-les sur le site."
+                                          : "Pas de résumé : pas de notes de version trouvées.")
                                 wrapMode: Text.WordWrap
                             }
                             Controls.Label {
                                 Layout.fillWidth: true
+                                objectName: "source-" + rang.modelData.id
                                 visible: !!rang.note?.source
                                 text: "Source : " + (rang.note?.source ?? "")
                                 color: Style.texteAttenue
@@ -490,6 +496,7 @@ Item {
                                 spacing: Kirigami.Units.smallSpacing
 
                                 Bouton {
+                                    objectName: "notes-origine-" + rang.modelData.id
                                     flat: true
                                     text: "Notes de version d'origine"
                                     icon.name: notesOuvertes.visible ? "arrow-down" : "arrow-right"
@@ -521,6 +528,7 @@ Item {
                                 }
                             }
                             Bouton {
+                                objectName: "ouvrir-notes-" + rang.modelData.id
                                 visible: !!rang.note?.lien
                                 text: "Ouvrir les notes"
                                 icon.name: "internet-services"

@@ -1,0 +1,307 @@
+{
+ "genere": "2026-11-10T09:00:00+00:00",
+ "boot_id": "0123456789abcdef",
+ "debut": "2026-11-10T08:00:00+00:00",
+ "duree": {
+  "total": 40.4,
+  "phases": [
+   {
+    "cle": "firmware",
+    "nom": "Firmware (BIOS/UEFI)",
+    "secondes": 15.0,
+    "duree": "15 s",
+    "lent": true
+   },
+   {
+    "cle": "loader",
+    "nom": "Chargeur de démarrage",
+    "secondes": 3.7,
+    "duree": "3,7 s",
+    "lent": false
+   },
+   {
+    "cle": "kernel",
+    "nom": "Noyau",
+    "secondes": 6.5,
+    "duree": "6,5 s",
+    "lent": false
+   },
+   {
+    "cle": "initrd",
+    "nom": "initrd",
+    "secondes": 6.7,
+    "duree": "6,7 s",
+    "lent": false
+   },
+   {
+    "cle": "userspace",
+    "nom": "Espace utilisateur",
+    "secondes": 8.5,
+    "duree": "8,5 s",
+    "lent": false
+   }
+  ]
+ },
+ "habituel": 38.0,
+ "precedents": [
+  38.0,
+  37.0,
+  39.0,
+  38.0,
+  40.0,
+  38.0,
+  37.5,
+  39.0,
+  38.0,
+  38.5
+ ],
+ "ralentisseurs": [
+  {
+   "id": "phase:firmware",
+   "nom": "Firmware (BIOS/UEFI)",
+   "secondes": 15.0,
+   "duree": "15 s",
+   "type": "phase",
+   "lent": true,
+   "portee": "systeme",
+   "explication": "Le BIOS/UEFI de la carte mère teste la mémoire et les périphériques avant même Linux. Health Hub n'y peut rien : ça se règle dans le BIOS (démarrage rapide, « Fast Boot »)."
+  },
+  {
+   "id": "unite:dracut-initqueue.service",
+   "nom": "dracut-initqueue.service",
+   "secondes": 5.0,
+   "duree": "5,0 s",
+   "type": "initrd",
+   "lent": false,
+   "portee": "systeme",
+   "explication": "Étape de l'initrd qui attend les disques."
+  },
+  {
+   "id": "unite:NetworkManager-wait-online.service",
+   "nom": "NetworkManager-wait-online.service",
+   "secondes": 4.6,
+   "duree": "4,6 s",
+   "type": "bureau",
+   "lent": false,
+   "portee": "systeme",
+   "explication": "Le système attend que le réseau soit connecté avant de finir de démarrer : sur Bazzite, le contrôle du démarrage (greenboot) l'attend. Le couper fait gagner ce temps, mais un service qui a besoin du réseau dès le démarrage peut alors échouer."
+  }
+ ],
+ "arriere_plan": [
+  {
+   "id": "unite:uupd.service",
+   "nom": "uupd.service",
+   "secondes": 12.0,
+   "duree": "12 s",
+   "type": "fond",
+   "lent": false,
+   "portee": "systeme",
+   "explication": "Les mises à jour automatiques de Bazzite. Elles tournent en arrière-plan après le démarrage, sans retarder le bureau."
+  },
+  {
+   "id": "unite:lanceur.service",
+   "nom": "lanceur.service",
+   "secondes": 7.2,
+   "duree": "7,2 s",
+   "type": "fond",
+   "lent": false,
+   "portee": "session",
+   "explication": "lanceur.service a pris 7,2 s au démarrage. S'il tourne en parallèle des autres, il ne retarde pas forcément l'arrivée au bureau."
+  }
+ ],
+ "lancement": {
+  "entrees": [
+   {
+    "id": "autostart:messagerie.desktop",
+    "nom": "Messagerie",
+    "description": "Client de messagerie.",
+    "type": "appli",
+    "actif": true,
+    "groupe": "toi",
+    "modifiable": true,
+    "raison": null,
+    "quand": "À l'ouverture de session",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "autostart:indexation.desktop",
+    "nom": "Indexation",
+    "description": "Indexe tes fichiers pour la recherche.",
+    "type": "appli",
+    "actif": false,
+    "groupe": "toi",
+    "modifiable": true,
+    "raison": null,
+    "quand": "À l'ouverture de session",
+    "avertissement": null,
+    "modifie": {
+     "date": "2026-11-09T21:00:00+00:00",
+     "avant": true
+    }
+   },
+   {
+    "id": "unite:sauvegarde-notes.timer",
+    "nom": "sauvegarde-notes.timer",
+    "description": "Sauvegarde des notes.",
+    "type": "minuteur",
+    "actif": true,
+    "groupe": "toi",
+    "modifiable": true,
+    "raison": null,
+    "quand": "Prochaine : demain à 04 h 45",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "unite:synchro.timer",
+    "nom": "synchro.timer",
+    "description": "Synchronisation des dossiers.",
+    "type": "minuteur",
+    "actif": true,
+    "groupe": "toi",
+    "modifiable": true,
+    "raison": null,
+    "quand": "Prochaine : aujourd'hui à 22 h 30",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "unite:outil-perso.service",
+    "nom": "outil-perso.service",
+    "description": "Un outil personnel.",
+    "type": "service",
+    "actif": false,
+    "groupe": "toi",
+    "modifiable": true,
+    "raison": null,
+    "quand": "À la demande",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "unite:lanceur.service",
+    "nom": "lanceur.service",
+    "description": "Lanceur d'applications.",
+    "type": "service",
+    "actif": true,
+    "groupe": "toi",
+    "modifiable": false,
+    "raison": "Nom de fichier inhabituel : Health Hub n'y touche pas.",
+    "quand": "À l'ouverture de session",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "unite:maj-apps.timer",
+    "nom": "maj-apps.timer",
+    "description": "Mise à jour des outils de Health Hub.",
+    "type": "minuteur",
+    "actif": true,
+    "groupe": "healthhub",
+    "modifiable": true,
+    "raison": null,
+    "quand": "Prochaine : demain à 04 h 45",
+    "avertissement": "Les outils (Vicinae, Ollama, uv, distrobox) ne se mettront plus à jour tout seuls.",
+    "modifie": null
+   },
+   {
+    "id": "unite:bazzite-exemple.service",
+    "nom": "bazzite-exemple.service",
+    "description": "Un réglage de Bazzite.",
+    "type": "service",
+    "actif": true,
+    "groupe": "bazzite",
+    "modifiable": false,
+    "raison": "Activé par Bazzite pour tous les comptes.",
+    "quand": "À l'ouverture de session",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "unite:pipewire.socket",
+    "nom": "pipewire.socket",
+    "description": "Le son du bureau.",
+    "type": "socket",
+    "actif": true,
+    "groupe": "essentiel",
+    "modifiable": false,
+    "raison": "Essentiel au bureau.",
+    "quand": "À la demande",
+    "avertissement": null,
+    "modifie": null
+   },
+   {
+    "id": "autostart:org.kde.plasmashell.desktop",
+    "nom": "Bureau Plasma",
+    "description": "Le bureau.",
+    "type": "appli",
+    "actif": true,
+    "groupe": "essentiel",
+    "modifiable": false,
+    "raison": "Essentiel au bureau.",
+    "quand": "À l'ouverture de session",
+    "avertissement": null,
+    "modifie": null
+   }
+  ],
+  "ignorees": 2
+ },
+ "systeme": [
+  {
+   "unite": "NetworkManager-wait-online.service",
+   "description": "Attente du réseau au démarrage",
+   "secondes": 4.6,
+   "duree": "4,6 s",
+   "essentiel": false,
+   "explication": "Le système attend que le réseau soit connecté avant de finir de démarrer.",
+   "commande": "sudo systemctl disable NetworkManager-wait-online.service"
+  },
+  {
+   "unite": "uupd.timer",
+   "description": "Mises à jour automatiques de Bazzite",
+   "secondes": null,
+   "duree": null,
+   "essentiel": true,
+   "explication": null,
+   "commande": null
+  },
+  {
+   "unite": "exemple-sauvegarde.timer",
+   "description": "Sauvegarde système d'exemple",
+   "secondes": null,
+   "duree": null,
+   "essentiel": false,
+   "explication": null,
+   "commande": "sudo systemctl disable --now exemple-sauvegarde.timer"
+  },
+  {
+   "unite": "systemd-resolved.service",
+   "description": "Résolution des noms de réseau",
+   "secondes": 0.4,
+   "duree": "0,4 s",
+   "essentiel": true,
+   "explication": null,
+   "commande": null
+  },
+  {
+   "unite": "exemple-imprimante.service",
+   "description": "Service d'impression d'exemple",
+   "secondes": 0.2,
+   "duree": "0,2 s",
+   "essentiel": false,
+   "explication": null,
+   "commande": "sudo systemctl disable exemple-imprimante.service"
+  },
+  {
+   "unite": "exemple-bluetooth.service",
+   "description": "Service Bluetooth d'exemple",
+   "secondes": null,
+   "duree": null,
+   "essentiel": false,
+   "explication": null,
+   "commande": "sudo systemctl disable exemple-bluetooth.service"
+  }
+ ],
+ "erreurs": []
+}

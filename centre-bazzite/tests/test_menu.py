@@ -129,17 +129,32 @@ class MenuDeplie(Base):
         accueil = self.f.objet("verification-accueil")
         self.assertEqual(accueil.property("text"), self.f.objet("menu-verification").property("text"))
 
-    def test_entrees_bientot_grisees(self):
-        self.assertFalse(self.f.objet("menu-demarrage").property("disponible"))
-        for nom in ("accueil", "majs", "sante", "stockage", "jeux"):
+    def test_menu_sans_bientot(self):
+        """Task 3 : plus rien n'est « bientôt » : toutes les entrées sont disponibles, l'intertitre disparaît."""
+        for nom in ("accueil", "majs", "sante", "stockage", "jeux", "demarrage"):
             self.assertTrue(self.f.objet("menu-" + nom).property("disponible"), nom)
+        self.assertFalse(self.visible("menu-bientot"))
+        self.assertFalse(self.visible("menu-bientot-trait"))
+
+    def test_menu_demarrage_disponible(self):
+        """Task 3 : « Démarrage » est une entrée du menu, juste après Jeux ; un clic ouvre la page Démarrage."""
+        entrees = sorted((o for o in self.f.objets("menu-") if o.property("entree") is not None
+                          and o.property("disponible")), key=lambda o: o.property("y"))
+        self.assertEqual([o.objectName() for o in entrees],
+                         ["menu-accueil", "menu-majs", "menu-sante", "menu-stockage", "menu-jeux", "menu-demarrage"])
+        entrees = None
+        self.cliquer("menu-bouton-demarrage")
+        self.assertEqual(self.fenetre.property("page"), "demarrage")
+        self.assertTrue(self.f.objet("menu-demarrage").property("active"))
+        self.assertIsNotNone(self.f.objet("page-demarrage"))
+        self.assertIn(["centre-bazzite", "demarrage"], self.appels)
 
     def test_menu_jeux_disponible(self):
         """Task 6 : « Jeux » est une entrée du menu, juste après Stockage ; un clic ouvre la page Jeux."""
         entrees = sorted((o for o in self.f.objets("menu-") if o.property("entree") is not None
                           and o.property("disponible")), key=lambda o: o.property("y"))
         self.assertEqual([o.objectName() for o in entrees],
-                         ["menu-accueil", "menu-majs", "menu-sante", "menu-stockage", "menu-jeux"])
+                         ["menu-accueil", "menu-majs", "menu-sante", "menu-stockage", "menu-jeux", "menu-demarrage"])
         entrees = None
         self.cliquer("menu-bouton-jeux")
         self.assertEqual(self.fenetre.property("page"), "jeux")
@@ -206,7 +221,7 @@ class MenuRail(Base):
         self.assertEqual(self.f.objet("menu-tout-mettre-a-jour").property("infobulle"), "Tout mettre à jour (Ctrl+U)")
 
     def test_infobulles_des_entrees(self):
-        self.assertEqual(self.f.objet("menu-demarrage").property("infobulle"), "Démarrage : bientôt")
+        self.assertEqual(self.f.objet("menu-demarrage").property("infobulle"), "Démarrage")
         self.assertEqual(self.f.objet("menu-jeux").property("infobulle"), "Jeux")
         self.assertEqual(self.f.objet("menu-stockage").property("infobulle"), "Stockage : 2 à regarder")
         self.assertEqual(self.f.objet("menu-sante").property("infobulle"), "Santé")
@@ -345,7 +360,9 @@ class PetiteHauteur(Base):
     page = "sante"
 
     def test_le_pied_reste_entier(self):
-        self.fenetre.setProperty("height", 470)
+        # Sans « bientôt », les entrées tiennent à la hauteur minimale de la fenêtre : on la baisse pour les faire déborder.
+        self.fenetre.setProperty("minimumHeight", 300)
+        self.fenetre.setProperty("height", 400)
         attendre(300)
         pied = self.f.objet("menu-tout-mettre-a-jour")
         menu = self.f.objet("menu-lateral")
