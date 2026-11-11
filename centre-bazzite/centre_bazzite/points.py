@@ -524,9 +524,33 @@ def points(sante, deploiements, maj_apps=None, session=None, uupd=None, maintena
                           "Rien d'urgent ; consulte-les avec : journalctl -p err -b", n, 1))
     pl = sante.get("plantages")
     if pl:
-        res.append(_point("plantages", "info", f"{len(pl)} plantage(s) récent(s)",
-                          "Liste complète avec : coredumpctl list", len(pl), 1))
+        res.append(_point("plantages", "info", f"{len(pl)} plantage(s) récent(s)", _detail_plantages(pl), len(pl), 1))
     return res
+
+
+def plantages_par_programme(plantages):
+    """[(programme, nombre, date du dernier)] : le plus fréquent d'abord, puis le plus récent. Une entrée sans
+    programme compte pour « ? » ; ce qui n'est pas un dict est ignoré."""
+    groupes = {}
+    for p in plantages or []:
+        if not isinstance(p, dict):
+            continue
+        exe = str(p.get("exe") or "?")
+        nombre, dernier = groupes.get(exe, (0, ""))
+        groupes[exe] = (nombre + 1, max(dernier, str(p.get("date") or "")))
+    liste = sorted(((exe, n, d) for exe, (n, d) in groupes.items()), key=lambda g: g[0])
+    liste.sort(key=lambda g: g[2], reverse=True)        # tris stables : le nom, puis la date, puis le nombre
+    liste.sort(key=lambda g: g[1], reverse=True)
+    return liste
+
+
+def _detail_plantages(plantages, nombre=3):
+    """« outil : 3 fois · jeu.exe : 1 fois · … Liste complète avec : coredumpctl list » : les programmes qui reviennent
+    le plus, pour voir d'un coup d'œil si un plantage se répète."""
+    groupes = plantages_par_programme(plantages)
+    morceaux = " · ".join(f"{exe} : {n} fois" for exe, n, _d in groupes[:nombre])
+    suite = " · … " if len(groupes) > nombre else ". "
+    return (morceaux + suite if morceaux else "") + "Liste complète avec : coredumpctl list"
 
 
 _TOUT_RELEVE = object()

@@ -94,6 +94,21 @@ class Regles(unittest.TestCase):
         self.assertEqual(p["journal:erreurs"]["gravite"], "info")
         self.assertEqual(p["plantages"]["gravite"], "info")
 
+    def test_plantages_regroupes_dans_le_detail(self):
+        """Le détail du point cite les programmes les plus fréquents (3 au plus), le plus récent d'abord à égalité."""
+        pl = ([{"exe": "outil", "signal": 6, "date": f"2026-11-09T10:0{i}:00"} for i in range(3)]
+              + [{"exe": "lanceur", "signal": 11, "date": "2026-11-08T10:00:00"},
+                 {"exe": "jeu.exe", "signal": 3, "date": "2026-11-09T12:00:00"},
+                 {"exe": "autre", "signal": 6, "date": "2026-11-01T10:00:00"}])
+        p = par_id(calculer(sante(plantages=pl)))["plantages"]
+        self.assertEqual(p["titre"], "6 plantage(s) récent(s)")
+        self.assertEqual(p["detail"], "outil : 3 fois · jeu.exe : 1 fois · lanceur : 1 fois · … "
+                                      "Liste complète avec : coredumpctl list")
+
+    def test_plantages_mal_formes_sans_erreur(self):
+        p = par_id(calculer(sante(plantages=[{"x": 1}, "pas un dict"])))["plantages"]
+        self.assertEqual(p["detail"], "? : 1 fois. Liste complète avec : coredumpctl list")
+
     def test_ssd(self):
         self.assertEqual(calculer(ssd()), [])
         self.assertEqual(par_id(calculer(ssd(erreurs_media=2)))["ssd:X:critique:erreurs-media"]["gravite"], "echec")

@@ -13,8 +13,27 @@ ColumnLayout {
     required property var page      // la page Santé : ses données et ses formats
 
     readonly property var erreurs: page.sante.erreurs_journal ?? []
-    readonly property var plantages: (page.sante.plantages ?? []).slice()
-        .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))
+    readonly property var plantages: page.sante.plantages ?? []
+    // Une ligne par programme (comme le point « plantages ») : le plus fréquent d'abord, puis le plus récent, pour voir
+    // d'un coup d'œil ce qui se répète.
+    readonly property var parProgramme: {
+        const groupes = {};
+        for (const p of plantages) {
+            if (!p || typeof p !== "object")
+                continue;
+            const exe = String(p.exe || "?"), date = String(p.date ?? "");
+            const g = groupes[exe] ?? (groupes[exe] = { exe: exe, nombre: 0, dernier: "", signal: p.signal });
+            g.nombre += 1;
+            if (date > g.dernier) {
+                g.dernier = date;
+                g.signal = p.signal;
+            }
+        }
+        return Object.values(groupes).sort((a, b) => b.nombre - a.nombre || b.dernier.localeCompare(a.dernier)
+                                                   || a.exe.localeCompare(b.exe));
+    }
+    readonly property var nomsSignaux: ({ 3: "SIGQUIT", 4: "SIGILL", 5: "SIGTRAP", 6: "SIGABRT", 7: "SIGBUS", 8: "SIGFPE",
+                                          9: "SIGKILL", 11: "SIGSEGV", 15: "SIGTERM", 31: "SIGSYS" })
     // Les plantages vus par le noyau (journal du noyau de cette session), en plus de ceux de coredumpctl.
     readonly property int plantagesNoyau: page.noyau?.plantages?.nombre ?? 0
     // Côte à côte dès 40 unités de grille (720 px de contenu : fenêtre de 1100 px, menu déplié).
@@ -138,9 +157,11 @@ ColumnLayout {
                 spacing: Style.espace(0.5)
 
                 Repeater {
-                    model: onglet.plantages
+                    model: onglet.parProgramme
 
-                    delegate: RowLayout {
+                    // Comme une erreur du journal : le programme et « N fois » sur la première ligne, le signal et la
+                    // date du dernier plantage dessous, pour que le nom du programme reste lisible en deux colonnes.
+                    delegate: ColumnLayout {
                         id: plantage
 
                         required property var modelData
@@ -148,23 +169,44 @@ ColumnLayout {
 
                         objectName: "journal-plantage-" + index
                         Layout.fillWidth: true
-                        spacing: Style.espace(3)
+                        spacing: 0
 
-                        TexteAbrege {
-                            objectName: "journal-exe-" + plantage.index
+                        RowLayout {
                             Layout.fillWidth: true
-                            text: plantage.modelData.exe ?? ""
+                            spacing: Style.espace(2)
+
+                            TexteAbrege {
+                                objectName: "journal-exe-" + plantage.index
+                                Layout.fillWidth: true
+                                text: plantage.modelData.exe
+                            }
+                            Controls.Label {
+                                objectName: "journal-fois-" + plantage.index
+                                visible: plantage.modelData.nombre > 1
+                                text: plantage.modelData.nombre + " fois"
+                                font.weight: Font.DemiBold
+                                font.features: ({ "tnum": 1 })
+                            }
                         }
-                        Controls.Label {
-                            text: "signal " + plantage.modelData.signal
-                            color: Style.texteAttenue
-                            font.pointSize: Style.tailleMeta
-                        }
-                        Controls.Label {
-                            text: onglet.page.jourHeure(plantage.modelData.date)
-                            color: Style.texteAttenue
-                            font.pointSize: Style.tailleMeta
-                            font.features: ({ "tnum": 1 })
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Style.espace(2)
+
+                            Controls.Label {
+                                objectName: "journal-signal-" + plantage.index
+                                text: onglet.nomsSignaux[plantage.modelData.signal] ?? ("signal " + plantage.modelData.signal)
+                                color: Style.texteAttenue
+                                font.pointSize: Style.tailleMeta
+                            }
+                            TexteAbrege {
+                                objectName: "journal-date-" + plantage.index
+                                Layout.fillWidth: true
+                                text: (plantage.modelData.nombre > 1 ? "dernier le " : "le ")
+                                      + onglet.page.jourHeure(plantage.modelData.dernier)
+                                color: Style.texteAttenue
+                                font.pointSize: Style.tailleMeta
+                                font.features: ({ "tnum": 1 })
+                            }
                         }
                     }
                 }

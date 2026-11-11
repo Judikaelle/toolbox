@@ -860,14 +860,24 @@ class Journal(Base):
         self.assertGreater(plantages.x(), erreurs.x() + 200)
         self.assertAlmostEqual(plantages.y(), erreurs.y(), delta=2)
         self.assertEqual(len(self.f.objets("journal-erreur-")), 10)
-        self.assertEqual(len(self.f.objets("journal-plantage-")), 23)
+        self.assertEqual(len(self.f.objets("journal-plantage-")), 4)          # 23 plantages, 4 programmes
 
-    def test_plantages_les_plus_recents_d_abord(self):
+    def test_plantages_regroupes_par_programme(self):
+        """Une ligne par programme : le plus fréquent d'abord, puis le plus récent ; « N fois » seulement au-delà d'un
+        plantage ; le signal par son nom ; la date du dernier plantage."""
         lignes = sorted(self.f.objets("journal-plantage-"), key=lambda o: o.property("y"))
-        self.assertEqual(lignes[0].objectName(), "journal-plantage-0")
+        self.assertEqual([o.objectName() for o in lignes], [f"journal-plantage-{i}" for i in range(4)])
         e = json.loads((ETATS / "complet" / "etat.json").read_text(encoding="utf-8"))
-        dernier = max(e["sante"]["plantages"], key=lambda p: p["date"])
-        self.assertEqual(self.f.objet("journal-exe-0").property("text"), dernier["exe"])
+        exes = [self.f.objet(f"journal-exe-{i}").property("text") for i in range(4)]
+        self.assertEqual(exes[:2], ["python3.15", "foreground_booster"])
+        uniques = sorted({p["exe"] for p in e["sante"]["plantages"]} - set(exes[:2]),
+                         key=lambda x: max(p["date"] for p in e["sante"]["plantages"] if p["exe"] == x), reverse=True)
+        self.assertEqual(exes[2:], uniques)                                # à égalité : le plus récent d'abord
+        self.assertEqual(self.f.objet("journal-fois-0").property("text"), "16 fois")
+        self.assertTrue(self.f.objet("journal-fois-0").property("visible"))
+        self.assertFalse(self.f.objet("journal-fois-3").property("visible"))
+        self.assertEqual(self.f.objet("journal-signal-0").property("text"), "SIGABRT")
+        self.assertTrue(self.f.objet("journal-date-0").property("text").startswith("dernier le "))
 
     def test_pour_information(self):
         self.assertTrue(self.f.objet("journal-pour-information").property("visible"))
