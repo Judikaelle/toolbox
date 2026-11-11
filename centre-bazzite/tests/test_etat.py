@@ -163,6 +163,15 @@ class Construire(Base):
         self.assertEqual(domaines["service:foo.service"], "systeme")
         self.assertEqual(domaines, {p["id"]: points.domaine(p["id"]) for p in e["points"]})
 
+    def test_point_securite_dans_la_rubrique_sante(self):
+        sec = {"pare_feu": None, "ports": None, "demarrage": None, "ld_preload": None, "cache": None,
+               "temporaires": {"nombre": 1, "exemples": ["/tmp/a"], "examines": 1, "plafond_atteint": False}}
+        s = dict(SANTE_OK, securite=sec)
+        e = self.construire(collecter=lambda: s)
+        pt = next(p for p in e["points"] if p["id"] == "securite:temporaires")
+        self.assertEqual((pt["rubrique"], pt["domaine"]), ("sante", "securite"))
+        self.assertEqual(e["compteurs"]["sante"], 1)
+
     def test_premier_lancement_orange(self):
         s = dict(SANTE_OK, services_en_echec=["foo.service"])
         e = self.construire(collecter=lambda: s)

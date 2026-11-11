@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import shutil
 import signal
 import tempfile
 from datetime import datetime, timedelta
@@ -82,6 +83,7 @@ class Fausses:
 class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         p = mock.patch.object(commun, "ETAT", self.tmp)
         p.start()
         self.addCleanup(p.stop)

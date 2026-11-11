@@ -1,8 +1,9 @@
 """Points signalés, sourdine (« ne plus signaler jusqu'à ce que ça empire ») et couleur globale."""
 import re
 from datetime import datetime
+from pathlib import Path
 
-from . import commun, demarrage as demarrage_mod, sante as sante_mod
+from . import commun, demarrage as demarrage_mod, sante as sante_mod, securite as securite_mod
 
 MIN_POURCENT = 10
 MIN_GIO = 15
@@ -217,6 +218,148 @@ def _points_stockage(sante):
     return res
 
 
+def _exemples(liste, n=3):
+    return " ; ".join(str(x) for x in (liste or [])[:n])
+
+
+def _suite_noyau(n, quoi):
+    ex = _exemples(n.get("exemples"))
+    return (f"{quoi} " + (f"Exemples : {ex}. " if ex else "") + "Le détail : journalctl -k -b")
+
+
+def _points_noyau(n):
+    """Messages du noyau de cette session, par catégorie (sante.noyau) : lecture seule, la commande est dans le détail."""
+    res = []
+    if not isinstance(n, dict):
+        return res
+    g = n.get("gpu") or {}
+    nb = g.get("nombre") or 0
+    if nb >= 1 or g.get("chute"):
+        if g.get("chute"):
+            gravite, quoi = "echec", ("La carte graphique ne répondait plus (Xid 79) : vérifie son alimentation et "
+                                      "son branchement. Si ça recommence, mets à jour Bazzite (le pilote NVIDIA vient "
+                                      "avec l'image).")
+        elif (g.get("graves") or 0) >= 1:
+            gravite, quoi = "attention", ("Le pilote de la carte graphique a signalé des erreurs sérieuses. "
+                                          "Mets à jour Bazzite : le pilote NVIDIA vient avec l'image.")
+        else:
+            gravite, quoi = "info", "Le pilote de la carte graphique a signalé des erreurs d'application, sans gravité."
+        res.append(_point("noyau:gpu", gravite, f"Le pilote de la carte graphique a signalé {max(nb, 1)} erreur(s)",
+                          _suite_noyau(g, quoi), (g.get("graves") or nb) if gravite != "info" else nb, 1))
+    m = n.get("materiel") or {}
+    nb = m.get("nombre") or 0
+    if nb >= 1:
+        res.append(_point("noyau:materiel", "attention", f"Le noyau signale {nb} erreur(s) matérielle(s)",
+                          _suite_noyau(m, "Un composant (mémoire, processeur, bus PCIe) a remonté une erreur "
+                                          "matérielle. Mets à jour Bazzite, et surveille si ça se répète."), nb, 1))
+    u = n.get("usb") or {}
+    nb = u.get("nombre") or 0
+    if nb >= 1:
+        res.append(_point("noyau:usb", "attention" if nb >= 20 else "info",
+                          f"{nb} erreur(s) USB depuis le démarrage",
+                          _suite_noyau(u, "Un appareil USB se déconnecte ou répond mal : vérifie le câble et "
+                                          "le port."), nb, 10))
+    p = n.get("plantages") or {}
+    nb = p.get("nombre") or 0
+    if nb >= 20:
+        res.append(_point("noyau:plantages", "attention", f"{nb} plantages de programmes depuis le démarrage",
+                          _suite_noyau(p, "Un programme plante en boucle."), nb, 10))
+    return res
+
+
+def _points_memoire(m):
+    res = []
+    if not isinstance(m, dict):
+        return res
+    attente = m.get("attente")
+    total, dispo = m.get("total") or 0, m.get("disponible") or 0
+    rare = bool(total) and dispo < 0.10 * total
+    if (attente is not None and attente >= 5) or rare:
+        gravite = "echec" if attente is not None and attente >= 20 else "attention"
+        phrases = []
+        if rare:
+            phrases.append(f"Il ne reste que {round(100 * dispo / total)} % de mémoire disponible.")
+        if attente is not None:
+            pct = f"{attente:.1f}".replace(".", ",")
+            phrases.append(f"Ces 5 dernières minutes, des programmes ont attendu la mémoire {pct} % du temps. "
+                           "Au-delà de 5 %, on sent des ralentissements.")
+        phrases.append("Ferme les programmes gourmands (navigateur aux nombreux onglets, IA locale, "
+                       "machine virtuelle).")
+        res.append(_point("memoire:pression", gravite, "La mémoire est sous pression", " ".join(phrases),
+                          attente or 0.0, 5))
+    if m.get("swap_total") == 0 and not m.get("zram"):
+        res.append(_point("memoire:sans-swap", "attention", "Aucun swap ni zram n'est actif",
+                          "Sans zram, une mémoire pleine fige le système. Vérifie zram-generator : "
+                          "systemctl status systemd-zram-setup@zram0", 0, 1))
+    return res
+
+
+def _tilde(chemin):
+    home = str(Path.home())
+    chemin = str(chemin)
+    return "~" + chemin[len(home):] if chemin == home or chemin.startswith(home + "/") else chemin
+
+
+def _points_securite(s):
+    res = []
+    if not isinstance(s, dict):
+        return res
+    pf, ports = s.get("pare_feu"), s.get("ports")
+    inconnus = [i for i in (ports or {}).get("inconnus") or [] if isinstance(i, dict)]
+    if isinstance(pf, dict) and pf.get("actif") is False:
+        echec = bool(inconnus)
+        res.append(_point("securite:pare-feu", "echec" if echec else "attention", "Le pare-feu est arrêté",
+                          "Rien ne filtre les connexions venant du réseau"
+                          + (" alors que des programmes y sont joignables" if echec else "")
+                          + ". Pour le démarrer : sudo systemctl enable --now firewalld", 1 if echec else 0, 1))
+    for i in inconnus:
+        prog, liste = i.get("prog"), list(i.get("ports") or [])
+        zone = (pf or {}).get("zone")
+        ouvert = isinstance(pf, dict) and pf.get("ouvre_hauts") and any(isinstance(x, int) and x > 1024 for x in liste)
+        arrete = isinstance(pf, dict) and pf.get("actif") is False
+        haut = f" (ta zone de pare-feu {zone} laisse entrer les ports au-dessus de 1024)" if ouvert else ""
+        joignable = ("Il est joignable par les autres appareils du réseau local" + haut + "." if arrete or ouvert
+                     else "Il accepte des connexions du réseau ; le pare-feu bloque peut-être ce port.")
+        res.append(_point(f"securite:port:{prog}", "attention",
+                          f"{prog} accepte des connexions du réseau (ports {', '.join(str(x) for x in liste)})",
+                          f"{joignable} S'il ne te dit rien, "
+                          "ferme-le. Si c'est un serveur de développement, fais-le écouter sur 127.0.0.1, ou ajoute-le "
+                          "à serveurs_connus dans ~/.config/health-hub/config.toml.", len(liste), 1))
+    dem = s.get("demarrage")
+    for f in (dem or {}).get("trouves") or []:
+        chemin = str(f.get("chemin"))
+        role = f.get("role") or "fichier de démarrage"
+        if role in ("démarrage automatique", "service systemd personnel"):
+            suite = " La page Démarrage permet de le désactiver."
+        elif role == securite_mod.ROLE_UNITE_DIRECTE:
+            suite = f" Pour le couper : systemctl --user disable --now {Path(chemin).name}"
+        else:
+            suite = ""
+        res.append(_point(f"securite:demarrage:{chemin}", f.get("gravite") or "attention",
+                          f"{Path(chemin).name} {f.get('quoi')}",
+                          f"{role.capitalize()} : {_tilde(chemin)}, ligne {f.get('numero')} : {f.get('ligne')}. "
+                          "Typique des logiciels malveillants, mais peut venir d'un réglage que tu as fait "
+                          f"toi-même. Pour l'ouvrir : xdg-open {_tilde(chemin)}.{suite}",
+                          1 if f.get("gravite") == "echec" else 0, 1))
+    ld = s.get("ld_preload")
+    if ld:
+        res.append(_point("securite:ld-preload", "echec", "Une bibliothèque est injectée dans tous les programmes",
+                          f"/etc/ld.so.preload contient : {', '.join(_tilde(x) for x in ld[:5])}. "
+                          "Rien de légitime n'en a besoin sur Bazzite. Pour le lire : cat /etc/ld.so.preload",
+                          len(ld), 1))
+    t = s.get("temporaires")
+    if isinstance(t, dict) and (t.get("nombre") or 0) >= 1:
+        nb = t["nombre"]
+        exemples = ", ".join(_tilde(x) for x in (t.get("exemples") or [])[:5])
+        res.append(_point("securite:temporaires", "attention",
+                          f"{'Au moins ' if t.get('plafond_atteint') else ''}{nb} exécutable(s) dans les dossiers temporaires",
+                          f"{'Au moins ' if t.get('plafond_atteint') else ''}{nb} programme(s) exécutable(s) posé(s) dans /tmp, "
+                          "/var/tmp ou /dev/shm : un classique des logiciels malveillants, mais certains outils "
+                          f"légitimes le font. {exemples}. "
+                          "Pour les lister : find /tmp /var/tmp /dev/shm -xdev -type f -perm -u+x", nb, 1))
+    return res
+
+
 def _points_deploiements(deploiements):
     """Plus de deux déploiements conservés. Le déploiement en attente (mise à jour installée, redémarrage
     attendu) n'est pas compté (Ruling V38) : ce troisième-là est normal et déjà signalé par « attend un
@@ -332,6 +475,9 @@ def points(sante, deploiements, maj_apps=None, session=None, uupd=None, maintena
 
     res += _points_ssd(sante.get("ssd"))
     res += _points_stockage(sante)
+    res += _points_noyau(sante.get("noyau"))
+    res += _points_memoire(sante.get("memoire"))
+    res += _points_securite(sante.get("securite"))
 
     attente = (deploiements or {}).get("en_attente")
     if attente and attente.get("version"):
@@ -412,6 +558,20 @@ def releve(id_, sante):
     if id_ == "volume:/boot":          # avant la règle générique des volumes : il vient des contrôles
         c = sante.get("controles")
         return isinstance(c, dict) and c.get("boot") is not None
+    if id_.startswith(("noyau:", "memoire:")):
+        return sante.get(id_.split(":")[0]) is not None
+    if id_.startswith("securite:"):
+        s = sante.get("securite")
+        if not isinstance(s, dict):
+            return False
+        if id_.startswith("securite:demarrage:"):       # liste des unités incomplète : pas de verdict
+            d = s.get("demarrage")
+            return isinstance(d, dict) and not d.get("incomplet")
+        for prefixe, cle in (("securite:pare-feu", "pare_feu"), ("securite:port:", "ports"),
+                             ("securite:ld-preload", "ld_preload"), ("securite:temporaires", "temporaires")):
+            if id_.startswith(prefixe):
+                return s.get(cle) is not None
+        return True
     if id_.startswith("ssd:"):
         return any(isinstance(d, dict) and d.get("sante") and id_.startswith(f"ssd:{d.get('modele')}:")
                    for d in sante.get("ssd") or [])
@@ -503,17 +663,20 @@ def rubrique(point_id):
 # points() produit, et leur domaine :
 #   disques   : ssd:<modèle>:usure|reserve|chaleur|critique:<nature>, stockage:erreurs-es,
 #               stockage:non-monte:<chemin>, volume:<chemin> (l'espace d'un volume ; son détail est dans Stockage)
-#   gpu       : ollama:inactif
+#   gpu       : ollama:inactif, noyau:gpu
 #   controles : ce que vérifie bazzite-health : volume:/boot, deploiements:trop, menage:runtimes,
 #               menage:telechargements-incomplets, menage:journal, maj:dispo:image:<v>, maj:dispo:flatpak
-#   journal   : journal:erreurs, plantages
-#   systeme   : service:<unité>, redemarrage:<v>, session:echec:<début>, maj:echec:<type>:<date>
+#   journal   : journal:erreurs, plantages, noyau:plantages
+#   securite  : securite:pare-feu, securite:port:<programme>, securite:demarrage:<chemin>, securite:ld-preload,
+#               securite:temporaires
+#   systeme   : noyau:materiel, noyau:usb, memoire:pression, memoire:sans-swap, service:<unité>, redemarrage:<v>, session:echec:<début>, maj:echec:<type>:<date>
 # gpu:, gel (gpu) et coredump: (journal) n'existent pas encore : ils ont leur place d'avance, comme dans la page v1.
 DOMAINES = (("controles", ("volume:/boot", "deploiements:", "menage:", "maj:dispo:")),
             ("disques", ("ssd:", "stockage:", "volume:")),
-            ("gpu", ("gpu:", "ollama:", "gel")),
-            ("journal", ("journal:", "plantages", "coredump:")),
-            ("systeme", ("service:", "redemarrage:", "session:", "maj:echec:")))
+            ("gpu", ("gpu:", "ollama:", "gel", "noyau:gpu")),
+            ("journal", ("journal:", "plantages", "coredump:", "noyau:plantages")),
+            ("securite", ("securite:",)),
+            ("systeme", ("service:", "redemarrage:", "session:", "maj:echec:", "noyau:", "memoire:")))
 
 
 def domaine(point_id):

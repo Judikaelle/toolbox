@@ -41,15 +41,38 @@ ColumnLayout {
         const gels = sante.gels?.nombre ?? 0;
         if (gels > 0)
             parts.push(pluriel(gels, "gel", "gels"));
+        const xid = sante.noyau?.gpu?.nombre ?? 0;
+        if (xid > 0)
+            parts.push(pluriel(xid, "erreur du pilote graphique", "erreurs du pilote graphique"));
         return parts.length > 0 ? parts.join(" · ") : "Carte graphique pas encore mesurée";
     }
+    // « Aucun service en échec · mémoire : 24 Go libres »
     function phraseSysteme() {
         const services = sante.services_en_echec ?? null;
+        const memoire = sante.memoire != null ? " · mémoire : " + Style.taille(sante.memoire.disponible) + " libres" : "";
         if (services === null)
-            return "Services pas encore vérifiés";
+            return "Services pas encore vérifiés" + memoire;
         if (services.length === 0)
-            return "Aucun service en échec";
-        return pluriel(services.length, "service en échec", "services en échec") + " : " + services.join(", ");
+            return "Aucun service en échec" + memoire;
+        return pluriel(services.length, "service en échec", "services en échec") + " : " + services.join(", ") + memoire;
+    }
+    // « Pare-feu actif · aucun serveur inconnu · rien de suspect au démarrage » ; ajoute « 2 programmes dans les dossiers temporaires ».
+    function phraseSecurite() {
+        const s = page.securite;
+        if (s === null)
+            return "Sécurité pas encore vérifiée";
+        const parts = [s.pare_feu == null ? "Pare-feu non vérifié" : s.pare_feu.actif ? "Pare-feu actif" : "Pare-feu arrêté"];
+        const inconnus = s.ports == null ? -1 : (s.ports.inconnus ?? []).length;
+        parts.push(inconnus < 0 ? "ports non vérifiés" : inconnus === 0 ? "aucun serveur inconnu"
+                   : pluriel(inconnus, "serveur inconnu ouvert au réseau", "serveurs inconnus ouverts au réseau"));
+        const trouves = s.demarrage == null ? -1 : (s.demarrage.trouves ?? []).length;
+        parts.push(trouves < 0 ? "démarrage non vérifié"
+                   : trouves === 0 ? (s.demarrage.incomplet ? "démarrage lu en partie" : "rien de suspect au démarrage")
+                   : pluriel(trouves, "fichier suspect au démarrage", "fichiers suspects au démarrage"));
+        const temporaires = s.temporaires?.nombre ?? 0;
+        if (temporaires > 0)
+            parts.push(pluriel(temporaires, "programme", "programmes") + " dans les dossiers temporaires");
+        return parts.join(" · ");
     }
     // « Image à jour · 0 runtime inutilisé », ou ce qui est disponible, ou ce qui n'a pas pu être vérifié.
     function phraseControles() {
@@ -77,6 +100,7 @@ ColumnLayout {
         { "cle": "disques", "phrase": phraseDisques() },
         { "cle": "gpu", "phrase": phraseGpu() },
         { "cle": "systeme", "phrase": phraseSysteme() },
+        { "cle": "securite", "phrase": phraseSecurite() },
         { "cle": "controles", "phrase": phraseControles() },
         { "cle": "journal", "phrase": phraseJournal() }
     ]

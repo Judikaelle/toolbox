@@ -1,0 +1,13 @@
+nov. 10 09:12:00 machine kernel: NVRM: loading NVIDIA UNIX Open Kernel Module for x86_64  595.58.03  Release Build
+nov. 10 09:12:00 machine kernel: NVRM: memMap_IMPL: CPU mapping not supported on this platform
+nov. 10 09:12:00 machine kernel: NVRM: Xid (PCI:0000:01:00): 13, pid=4242, name=jeu, Graphics Exception: ESR 0x404600=0x80000002
+nov. 10 09:12:00 machine kernel: NVRM: Xid (PCI:0000:01:00): 31, pid=4242, name=jeu, Ch 00000010, intr 10000000. MMU Fault: ENGINE GRAPHICS
+nov. 10 09:12:00 machine kernel: NVRM: Xid (PCI:0000:01:00): 62, pid='<unknown>', name=<unknown>, 0000(0000) 00000000 00000000
+nov. 10 09:12:00 machine kernel: mce: CPU2: Core temperature above threshold, cpu clock throttled (total events = 1)
+nov. 10 09:12:00 machine kernel: mce: [Hardware Error]: Machine check events logged
+nov. 10 09:12:00 machine kernel: EDAC MC0: 1 CE memory read error on DIMM_A1 (channel:0 slot:0 page:0x1 offset:0x0 grain:32)
+nov. 10 09:12:00 machine kernel: usb 3-2: device descriptor read/64, error -71
+nov. 10 09:12:00 machine kernel: usb 3-2: device not accepting address 5, error -71
+nov. 10 09:12:00 machine kernel: outil[5151]: segfault at 0 ip 000055d0c0de0000 sp 00007ffd00000000 error 4 in outil[55d0c0de0000+1000]
+nov. 10 09:12:00 machine kernel: traps: autre[5252] general protection fault ip:7f0000000000 sp:7ffd00000000 error:0
+nov. 10 09:12:00 machine kernel: I/O error, dev sdb, sector 2048 op 0x0:(READ) flags 0x0 phys_seg 1 prio class 0

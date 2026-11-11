@@ -1,5 +1,5 @@
 """Page Santé : chargée pour de vrai dans Main.qml (QT_QPA_PLATFORM=offscreen). Chaque ligne porte un badge nommé ; on lit
-son mot et son état. Task 19 : la page a des onglets (Résumé, Disques, GPU et jeux, Système, Contrôles, Journal) ; seul
+son mot et son état. Task 19 : la page a des onglets (Résumé, Disques, GPU et jeux, Système, Sécurité, Contrôles, Journal) ; seul
 l'onglet ouvert existe. Un test qui regarde un onglet l'ouvre d'abord, comme l'utilisateur."""
 import gc
 import json
@@ -16,7 +16,7 @@ from tests.test_accueil import APP, ETATS, Fenetre
 from tests.test_menu import attendre
 
 ONGLETS = [("resume", "Résumé"), ("disques", "Disques"), ("gpu", "GPU et jeux"), ("systeme", "Système"),
-           ("controles", "Contrôles"), ("journal", "Journal")]
+           ("securite", "Sécurité"), ("controles", "Contrôles"), ("journal", "Journal")]
 # Objectif « un écran » (Task 19) : contentHeight ≤ hauteur visible + cette tolérance, soit la marge du bas de la page
 # (Style.margePage) : seul ce vide peut passer sous le bord, jamais du contenu.
 TOLERANCE_ECRAN = 24
@@ -59,6 +59,11 @@ class Base(unittest.TestCase):
         self.assertIsNotNone(o, nom)
         self.assertTrue(o.property("visible"), nom)
         return o.property("texte"), o.property("etat")
+
+    def absent(self, nom):
+        """Une ligne conditionnelle : sans objet, ou cachée."""
+        o = self.f.objet(nom)
+        return o is None or not o.property("visible")
 
     def cliquer(self, nom):
         o = self.f.objet(nom)
@@ -259,7 +264,7 @@ class Onglets(Base):
         boutons = sorted(self.f.objets("onglet-"), key=lambda o: o.property("x"))
         return [(o.objectName()[len("onglet-"):], o.property("text")) for o in boutons]
 
-    def test_six_onglets_resume_d_abord(self):
+    def test_sept_onglets_resume_d_abord(self):
         self.assertEqual(self.onglets(), ONGLETS)
         self.assertEqual(self.f.objet("sante-onglets").property("courant"), "resume")
         self.assertEqual(self.fenetre().property("ongletSante"), "resume")
@@ -270,8 +275,8 @@ class Onglets(Base):
         Système ; journal:erreurs et plantages (info) → Journal. maj:echec:maj-apps (échec) est de la rubrique majs : il
         reste à la page Mises à jour et ne colore aucun onglet de la santé."""
         etats = {cle: self.f.objet("onglet-" + cle).property("etat") for cle, _ in ONGLETS}
-        self.assertEqual(etats, {"resume": "", "disques": "", "gpu": "", "systeme": "attention", "controles": "",
-                                 "journal": "info"})
+        self.assertEqual(etats, {"resume": "", "disques": "", "gpu": "", "systeme": "attention", "securite": "",
+                                 "controles": "", "journal": "info"})
         self.assertEqual(self.f.objet("onglet-systeme").property("motEtat"), "Attention")
 
     def test_aucun_badge_sante_en_echec_a_cause_d_une_autre_rubrique(self):
@@ -282,12 +287,12 @@ class Onglets(Base):
                       [(p["id"], p["gravite"], p["rubrique"]) for p in e["points"]])
         for cle, _ in ONGLETS:
             self.assertNotEqual(self.f.objet("onglet-" + cle).property("etat"), "echec", cle)
-        for domaine in ("disques", "gpu", "systeme", "controles", "journal"):
+        for domaine in ("disques", "gpu", "systeme", "securite", "controles", "journal"):
             self.assertNotEqual(self.badge("resume-badge-" + domaine)[1], "echec", domaine)
         self.assertEqual(self.badge("resume-badge-systeme"), ("Attention", "attention"))
 
     def test_clic_sur_une_ligne_du_resume_ouvre_son_onglet(self):
-        for domaine in ("disques", "gpu", "systeme", "controles", "journal"):
+        for domaine in ("disques", "gpu", "systeme", "securite", "controles", "journal"):
             self.ouvrir_onglet("resume")
             self.cliquer("resume-ligne-" + domaine)
             self.assertEqual(self.fenetre().property("ongletSante"), domaine)
@@ -333,10 +338,405 @@ class Onglets(Base):
 
     def test_chaque_onglet_tient_sur_un_ecran(self):
         """Journal compris : 10 erreurs et 23 plantages, côte à côte."""
-        for cle in ("disques", "gpu", "systeme", "controles", "journal"):
+        for cle in ("disques", "gpu", "systeme", "securite", "controles", "journal"):
             self.ouvrir_onglet(cle)
             contenu, hauteur = self.hauteurs()
             self.assertLessEqual(contenu, hauteur + TOLERANCE_ECRAN, cle)
+
+
+class UnEcranAvecDesProblemes(Base):
+    """Un onglet chargé de problèmes tient encore sur un écran (rien n'est retiré, les détails se resserrent)."""
+    dossier = "complet"
+
+    def setUp(self):
+        self.addCleanup(nettoyer_emballages)
+        e = json.loads((ETATS / "complet" / "etat.json").read_text(encoding="utf-8"))
+        sec, noyau = e["sante"]["securite"], e["sante"]["noyau"]
+        chemin = "/home/u/.config/autostart/outil.desktop"
+        sec["ports"]["inconnus"] = [{"prog": "serveur-dev", "ports": [3000, 3001]}, {"prog": "serveur-test", "ports": [8080]}]
+        sec["demarrage"]["trouves"] = [
+            {"chemin": chemin, "role": "démarrage automatique", "gravite": "echec",
+             "quoi": "télécharge et exécute un script", "numero": 4, "ligne": "Exec=sh -c x"},
+            {"chemin": "/home/u/.config/systemd/user/outil.service", "role": "service systemd personnel",
+             "gravite": "attention", "quoi": "lance un shell", "numero": 7, "ligne": "ExecStart=/bin/sh -c y"}]
+        sec["ld_preload"] = ["/usr/lib/outil.so"]
+        sec["temporaires"] = {"nombre": 2, "exemples": ["/tmp/a", "/tmp/b"], "examines": 40, "plafond_atteint": False}
+        noyau["usb"] = {"nombre": 3, "exemples": ["usb 1-2: disconnect", "usb 1-3: reset", "usb 1-4: erreur"]}
+        noyau["materiel"] = {"nombre": 2, "exemples": ["mce: erreur matérielle", "EDAC: erreur corrigée"]}
+        noyau["plantages"] = {"nombre": 2, "exemples": ["outil[42]: segfault", "outil[43]: segfault"]}
+        e["sante"]["memoire"]["attente"] = 30.0
+
+        def point(id_, gravite, domaine):
+            return {"id": id_, "gravite": gravite, "titre": "t", "detail": "d", "mesure": 1.0, "cran": 1.0, "action": None,
+                    "en_sourdine": False, "rubrique": "sante", "domaine": domaine}
+        e["points"] += [point("securite:port:serveur-dev", "attention", "securite"),
+                        point("securite:port:serveur-test", "attention", "securite"),
+                        point("securite:demarrage:" + chemin, "echec", "securite"),
+                        point("securite:ld-preload", "echec", "securite"),
+                        point("securite:temporaires", "attention", "securite"),
+                        point("memoire:pression", "echec", "systeme"), point("noyau:usb", "info", "systeme"),
+                        point("noyau:materiel", "attention", "systeme")]
+        self.d = tempfile.TemporaryDirectory()
+        self.addCleanup(self.d.cleanup)
+        (Path(self.d.name) / "etat.json").write_text(json.dumps(e, ensure_ascii=False), encoding="utf-8")
+        self.f = Fenetre(Path(self.d.name), "sante")
+        self.addCleanup(self.f.fermer)
+        self.addCleanup(lambda: self.f.pont._minuteur.stop())
+
+    def test_chaque_onglet_tient_sur_un_ecran_avec_des_problemes(self):
+        for cle in ("securite", "systeme", "journal"):
+            self.cliquer("onglet-" + cle)
+            self.assertEqual(self.f.objet("sante-onglets").property("courant"), cle)
+            page = self.f.objet("page-sante")
+            if cle == "journal":
+                self.assertTrue(self.f.objet("journal-plantages-noyau").property("visible"))
+            self.assertLessEqual(page.property("contentHeight"), page.property("height") + TOLERANCE_ECRAN, cle)
+
+
+class Securite(Base):
+    """Onglet Sécurité (Task 8) : quatre cartes ; l'état d'une ligne vient du point `securite:*` (jamais d'un seuil
+    recalculé par le QML), sinon « ok » ; une mesure illisible (null) vaut « Vérification impossible »."""
+    dossier = "complet"
+
+    def setUp(self):
+        self.addCleanup(nettoyer_emballages)       # la fenêtre s'ouvre dans ouvrir(), avec la sécurité voulue
+
+    def securite(self):
+        e = json.loads((ETATS / "complet" / "etat.json").read_text(encoding="utf-8"))
+        return e["sante"]["securite"], e["points"]
+
+    def ouvrir(self, **sec):
+        """Rouvre la fenêtre sur « complet » dont `sante.securite` a ces champs remplacés (`points` : ajoutés)."""
+        points = sec.pop("points", [])
+        s, pts = self.securite()
+        if s is not None:
+            s.update(sec)
+        self.f = Fenetre(variante(self, "complet", securite=s, points=pts + points), "sante")
+        self.addCleanup(self.f.fermer)
+        self.addCleanup(lambda: self.f.pont._minuteur.stop())
+
+    @staticmethod
+    def point(id_, gravite, titre="t"):
+        return {"id": id_, "gravite": gravite, "titre": titre, "detail": "d", "mesure": 1.0, "cran": 1.0, "action": None,
+                "en_sourdine": False, "rubrique": "sante", "domaine": "securite"}
+
+    def problemes(self):
+        self.ouvrir(
+            ports={"inconnus": [{"prog": "serveur-dev", "ports": [3000, 3001]}], "connus": [], "systeme": []},
+            demarrage={"lus": 31, "incomplet": False, "trouves": [
+                {"chemin": "/home/u/.config/autostart/outil.desktop", "role": "démarrage automatique",
+                 "gravite": "echec", "quoi": "télécharge et exécute un script", "numero": 4, "ligne": "Exec=sh -c x"}]},
+            temporaires={"nombre": 2, "exemples": ["/tmp/a", "/tmp/b"], "examines": 40, "plafond_atteint": False},
+            points=[self.point("securite:port:serveur-dev", "attention"),
+                    self.point("securite:demarrage:/home/u/.config/autostart/outil.desktop", "echec"),
+                    self.point("securite:temporaires", "attention")])
+        self.ouvrir_onglet("securite")
+
+    def test_securite_tout_va_bien(self):
+        self.ouvrir()
+        self.ouvrir_onglet("securite")
+        self.assertIsNotNone(self.f.objet("sante-onglet-securite"))
+        for carte in ("pare-feu", "ports", "demarrage", "temporaires"):
+            self.assertIsNotNone(self.f.objet("securite-" + carte), carte)
+        self.assertEqual(self.badge("ligne-pare-feu"), ("Actif", "ok"))
+        detail = self.f.objet("ligne-pare-feu-detail").property("text")
+        self.assertIn("FedoraWorkstation", detail)
+        self.assertIn("1024", detail)
+        self.assertTrue(self.absent("ports-aucun"), "ports-aucun")
+        self.assertEqual(self.badge("ports-autres")[1], "info")
+        self.assertRegex(self.badge("ports-autres")[0], r"^\d+ (programmes?|ports?)$")
+        self.assertEqual(self.badge("demarrage-ok"), ("Rien de suspect", "ok"))
+        self.assertIn("31 fichiers lus", self.f.objet("demarrage-ok-detail").property("text"))
+        self.assertEqual(self.badge("ligne-temporaires")[1], "ok")
+        self.assertEqual(self.badge("ligne-cache")[1], "info")
+        self.assertIn("uv", self.f.objet("ligne-cache-detail").property("text"))
+        self.assertEqual(self.f.objet("onglet-securite").property("etat"), "")
+
+    def test_securite_autres_ports_ne_somme_pas_programmes_et_ports(self):
+        self.ouvrir(ports={"inconnus": [], "connus": [{"prog": "outil", "ports": [1234]}], "systeme": [5000, 5001]})
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("ports-autres"), ("1 programme", "info"))
+
+    def test_securite_aucun_port_expose(self):
+        self.ouvrir(ports={"inconnus": [], "connus": [], "systeme": []})
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("ports-aucun"), ("Aucun", "ok"))
+        self.assertTrue(self.absent("ports-autres"), "ports-autres")
+
+    def test_securite_pare_feu_arrete(self):
+        self.ouvrir(pare_feu={"actif": False, "zone": None, "ports": [], "services": [], "ouvre_hauts": False},
+                    points=[self.point("securite:pare-feu", "attention")])
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("ligne-pare-feu"), ("Arrêté", "attention"))
+
+    def test_securite_ld_preload_ligne_en_plus(self):
+        self.ouvrir(ld_preload=["/usr/lib/outil.so"], points=[self.point("securite:ld-preload", "echec")])
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("demarrage-ld-preload")[1], "echec")
+        self.assertEqual(self.badge("demarrage-ok"), ("Rien de suspect", "ok"))
+
+    def test_securite_problemes(self):
+        self.problemes()
+        self.assertEqual(self.badge("port-0"), ("Attention", "attention"))
+        self.assertIn("3000", self.f.objet("port-0-detail").property("text"))
+        self.assertEqual(self.badge("demarrage-0"), ("Échec", "echec"))
+        self.assertTrue(self.absent("demarrage-ok"), "demarrage-ok")
+        self.assertEqual(self.badge("ligne-temporaires"), ("2 programmes", "attention"))
+        self.assertEqual(self.f.objet("onglet-securite").property("etat"), "echec")
+        self.ouvrir_onglet("resume")
+        self.assertEqual(self.badge("resume-badge-securite"), ("Échec", "echec"))
+
+    def test_securite_sous_mesure_illisible(self):
+        self.ouvrir(ports=None)
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("ports-impossible"), ("Vérification impossible", "neutre"))
+        self.assertTrue(self.absent("ports-aucun"), "ports-aucun")
+        self.assertEqual(self.badge("ligne-pare-feu"), ("Actif", "ok"))
+        self.assertEqual(self.badge("demarrage-ok"), ("Rien de suspect", "ok"))
+        self.assertEqual(self.badge("ligne-temporaires")[1], "ok")
+
+    def test_securite_toute_mesure_illisible(self):
+        self.ouvrir(pare_feu=None, ports=None, demarrage=None, temporaires=None, cache=None)
+        self.ouvrir_onglet("securite")
+        for nom in ("ligne-pare-feu", "ports-impossible", "demarrage-impossible", "ligne-temporaires", "ligne-cache"):
+            self.assertEqual(self.badge(nom), ("Vérification impossible", "neutre"), nom)
+
+    def sourdine(self, id_, gravite="attention"):
+        p = self.point(id_, gravite)
+        p["en_sourdine"] = True
+        return p
+
+    def test_temporaires_en_sourdine_ligne_neutre(self):
+        """Ruling 9 : un point en sourdine n'est plus signalé, mais la ligne ne dit pas « OK » ; le détail reste."""
+        self.ouvrir(temporaires={"nombre": 2, "exemples": ["/tmp/a", "/tmp/b"], "examines": 40, "plafond_atteint": False},
+                    points=[self.sourdine("securite:temporaires")])
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("ligne-temporaires"), ("En sourdine", "neutre"))
+        self.assertIn("/tmp/a", self.f.objet("ligne-temporaires-detail").property("text"))
+        self.assertEqual(self.f.objet("onglet-securite").property("etat"), "")
+
+    def test_port_en_sourdine_ligne_neutre(self):
+        self.ouvrir(ports={"inconnus": [{"prog": "serveur-dev", "ports": [3000]}], "connus": [], "systeme": []},
+                    points=[self.sourdine("securite:port:serveur-dev")])
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("port-0"), ("En sourdine", "neutre"))
+        self.assertIn("3000", self.f.objet("port-0-detail").property("text"))
+        self.assertEqual(self.f.objet("onglet-securite").property("etat"), "")
+
+    def test_port_au_nom_voisin_n_herite_pas_du_point(self):
+        """Le point est celui de l'id exact : `serveur` n'hérite pas de `securite:port:serveur-dev`."""
+        self.ouvrir(ports={"inconnus": [{"prog": "serveur", "ports": [3000]}, {"prog": "serveur-dev", "ports": [3001]}],
+                           "connus": [], "systeme": []},
+                    points=[self.point("securite:port:serveur-dev", "attention")])
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("port-0"), ("OK", "ok"))
+        self.assertEqual(self.badge("port-1"), ("Attention", "attention"))
+
+    def test_securite_absente_quatre_cartes_impossibles(self):
+        self.f = Fenetre(variante(self, "complet", securite=None), "sante")
+        self.addCleanup(self.f.fermer)
+        self.addCleanup(lambda: self.f.pont._minuteur.stop())
+        self.ouvrir_onglet("securite")
+        for nom in ("ligne-pare-feu", "ports-impossible", "demarrage-impossible", "ligne-temporaires"):
+            self.assertEqual(self.badge(nom), ("Vérification impossible", "neutre"), nom)
+        self.assertEqual(self.f.objet("onglet-securite").property("etat"), "")
+
+    def test_resume_phrase_securite(self):
+        self.ouvrir()
+        self.assertEqual(self.f.objet("resume-phrase-securite").property("text"),
+                         "Pare-feu actif · aucun serveur inconnu · rien de suspect au démarrage")
+        self.assertEqual(self.badge("resume-badge-securite"), ("OK", "ok"))
+
+    def test_resume_phrase_securite_avec_problemes(self):
+        self.problemes()
+        self.ouvrir_onglet("resume")
+        phrase = self.f.objet("resume-phrase-securite").property("text")
+        self.assertIn("1 serveur inconnu ouvert au réseau", phrase)
+        self.assertIn("2 programmes dans les dossiers temporaires", phrase)
+        self.assertIn("1 fichier suspect au démarrage", phrase)
+
+    def test_resume_phrase_demarrage_lu_en_partie(self):
+        """Démarrage incomplet sans trouvaille : on ne promet pas « rien de suspect »."""
+        self.ouvrir(demarrage={"lus": 12, "incomplet": True, "trouves": []})
+        phrase = self.f.objet("resume-phrase-securite").property("text")
+        self.assertIn("démarrage lu en partie", phrase)
+        self.assertNotIn("rien de suspect", phrase)
+
+    def test_resume_phrase_demarrage_incomplet_avec_trouvaille(self):
+        self.ouvrir(demarrage={"lus": 12, "incomplet": True, "trouves": [
+            {"chemin": "/home/u/.config/autostart/outil.desktop", "role": "démarrage automatique",
+             "gravite": "echec", "quoi": "télécharge et exécute un script", "numero": 4, "ligne": "Exec=sh -c x"}]},
+            points=[self.point("securite:demarrage:/home/u/.config/autostart/outil.desktop", "echec")])
+        self.assertIn("1 fichier suspect au démarrage", self.f.objet("resume-phrase-securite").property("text"))
+        self.ouvrir_onglet("securite")
+        self.assertEqual(self.badge("demarrage-0"), ("Échec", "echec"))
+
+
+class NoyauEtMemoire(Base):
+    """Task 9 : le noyau et la mémoire dans GPU et jeux, Système, Journal et le Résumé. L'état d'une ligne vient du point
+    `noyau:*` ou `memoire:*` (jamais d'un seuil recalculé par le QML), sinon « ok »."""
+    dossier = "complet"
+
+    def setUp(self):
+        self.addCleanup(nettoyer_emballages)
+
+    def ouvrir(self, onglet=None, points=(), **sante):
+        """Rouvre « complet » dont ces champs de `sante` sont remplacés (`noyau` et `memoire` : fusionnés champ à champ)."""
+        e = json.loads((ETATS / "complet" / "etat.json").read_text(encoding="utf-8"))
+        for cle, valeur in sante.items():
+            if isinstance(valeur, dict) and isinstance(e["sante"].get(cle), dict):
+                e["sante"][cle].update(valeur)
+            else:
+                e["sante"][cle] = valeur
+        self.f = Fenetre(variante(self, "complet", **{k: e["sante"][k] for k in sante}, points=e["points"] + list(points)),
+                         "sante")
+        self.addCleanup(self.f.fermer)
+        self.addCleanup(lambda: self.f.pont._minuteur.stop())
+        if onglet:
+            self.cliquer("onglet-" + onglet)
+
+    @staticmethod
+    def point(id_, gravite, domaine):
+        return {"id": id_, "gravite": gravite, "titre": "t", "detail": "d", "mesure": 1.0, "cran": 1.0, "action": None,
+                "en_sourdine": False, "rubrique": "sante", "domaine": domaine}
+
+    def texte(self, nom):
+        return self.f.objet(nom).property("text")
+
+    def test_gpu_noyau(self):
+        self.ouvrir("gpu")
+        self.assertEqual(self.badge("gpu-noyau"), ("Aucune", "ok"))
+        self.assertIn("Erreurs du pilote (noyau)", self.texte("gpu-noyau-libelle"))
+
+    def test_gpu_noyau_erreurs_d_application(self):
+        self.ouvrir("gpu", noyau={"gpu": {"nombre": 2, "graves": 0, "chute": False, "exemples": ["Xid 13"]}},
+                    points=[self.point("noyau:gpu", "info", "gpu")])
+        self.assertEqual(self.badge("gpu-noyau"), ("2 erreurs", "info"))
+        self.assertIn("causées par une application", self.texte("gpu-noyau-detail"))
+
+    def test_gpu_noyau_graves(self):
+        self.ouvrir("gpu", noyau={"gpu": {"nombre": 2, "graves": 1, "chute": False, "exemples": ["Xid 31 sur pci:0000"]}},
+                    points=[self.point("noyau:gpu", "attention", "gpu")])
+        self.assertEqual(self.badge("gpu-noyau"), ("2 erreurs", "attention"))
+        self.assertIn("Xid 31 sur pci:0000", self.texte("gpu-noyau-detail"))
+
+    def test_gpu_noyau_illisible(self):
+        self.ouvrir("gpu", noyau=None)
+        self.assertEqual(self.badge("gpu-noyau"), ("Vérification impossible", "neutre"))
+
+    def test_systeme_memoire(self):
+        self.ouvrir("systeme")
+        self.assertEqual(self.badge("ligne-memoire")[1], "ok")
+        detail = self.texte("ligne-memoire-detail")
+        for mot in ("disponibles", "attente", "zram"):
+            self.assertIn(mot, detail)
+
+    def test_systeme_memoire_swap_rempli_est_normal_avec_zram(self):
+        self.ouvrir("systeme", memoire={"swap_utilise": 5153960755, "attente": None})
+        self.assertEqual(self.badge("ligne-memoire")[1], "ok")
+        self.assertIn("normal avec zram", self.texte("ligne-memoire-detail"))
+
+    def test_systeme_memoire_juste(self):
+        self.ouvrir("systeme", memoire={"attente": 6.5}, points=[self.point("memoire:pression", "attention", "systeme")])
+        self.assertEqual(self.badge("ligne-memoire"), ("Juste", "attention"))
+
+    def test_systeme_memoire_saturee(self):
+        self.ouvrir("systeme", memoire={"attente": 30.0}, points=[self.point("memoire:pression", "echec", "systeme")])
+        self.assertEqual(self.badge("ligne-memoire"), ("Saturée", "echec"))
+
+    def test_systeme_memoire_pression_et_sans_swap_le_pire(self):
+        self.ouvrir("systeme", memoire={"swap_total": 0, "swap_utilise": 0, "zram": [], "attente": 30.0},
+                    points=[self.point("memoire:pression", "echec", "systeme"),
+                            self.point("memoire:sans-swap", "attention", "systeme")])
+        self.assertEqual(self.badge("ligne-memoire"), ("Saturée", "echec"))
+        self.assertIn("swap", self.texte("ligne-memoire-detail"))
+
+    def test_systeme_memoire_pression_attention_et_sans_swap(self):
+        self.ouvrir("systeme", memoire={"swap_total": 0, "swap_utilise": 0, "zram": [], "attente": 6.5},
+                    points=[self.point("memoire:pression", "attention", "systeme"),
+                            self.point("memoire:sans-swap", "attention", "systeme")])
+        self.assertEqual(self.badge("ligne-memoire"), ("Juste", "attention"))
+        self.assertIn("swap", self.texte("ligne-memoire-detail"))
+
+    def test_systeme_memoire_sourdine_de_la_pression_garde_sans_swap(self):
+        pression = self.point("memoire:pression", "echec", "systeme")
+        pression["en_sourdine"] = True
+        self.ouvrir("systeme", memoire={"swap_total": 0, "swap_utilise": 0, "zram": []},
+                    points=[pression, self.point("memoire:sans-swap", "attention", "systeme")])
+        self.assertEqual(self.badge("ligne-memoire"), ("Sans swap", "attention"))
+
+    def test_systeme_memoire_en_sourdine(self):
+        p = self.point("memoire:pression", "attention", "systeme")
+        p["en_sourdine"] = True
+        self.ouvrir("systeme", memoire={"attente": 6.5}, points=[p])
+        self.assertEqual(self.badge("ligne-memoire"), ("En sourdine", "neutre"))
+        self.assertIn("disponibles", self.texte("ligne-memoire-detail"))
+
+    def test_systeme_usb_en_sourdine(self):
+        p = self.point("noyau:usb", "info", "systeme")
+        p["en_sourdine"] = True
+        self.ouvrir("systeme", noyau={"usb": {"nombre": 3, "exemples": ["usb 1-2: disconnect"]}}, points=[p])
+        self.assertEqual(self.badge("ligne-usb"), ("En sourdine", "neutre"))
+        self.assertIn("usb 1-2: disconnect", self.texte("ligne-usb-detail"))
+
+    def test_systeme_memoire_sans_swap(self):
+        self.ouvrir("systeme", memoire={"swap_total": 0, "swap_utilise": 0, "zram": []},
+                    points=[self.point("memoire:sans-swap", "attention", "systeme")])
+        self.assertEqual(self.badge("ligne-memoire")[1], "attention")
+
+    def test_systeme_memoire_illisible(self):
+        self.ouvrir("systeme", memoire=None)
+        self.assertEqual(self.badge("ligne-memoire"), ("Vérification impossible", "neutre"))
+
+    def test_systeme_materiel(self):
+        self.ouvrir("systeme")
+        self.assertEqual(self.badge("ligne-mce"), ("Aucune", "ok"))
+        self.assertEqual(self.badge("ligne-usb"), ("Aucune", "ok"))
+        self.assertIn("Processeur et mémoire (MCE/EDAC)", self.texte("ligne-mce-libelle"))
+        self.assertEqual(self.texte("ligne-usb-libelle"), "USB")
+
+    def test_systeme_materiel_usb(self):
+        self.ouvrir("systeme", noyau={"usb": {"nombre": 3, "exemples": ["usb 1-2: disconnect"]}},
+                    points=[self.point("noyau:usb", "info", "systeme")])
+        self.assertEqual(self.badge("ligne-usb"), ("3 erreurs", "info"))
+        self.assertIn("usb 1-2: disconnect", self.texte("ligne-usb-detail"))
+        self.assertEqual(self.badge("ligne-mce"), ("Aucune", "ok"))
+
+    def test_systeme_materiel_illisible(self):
+        self.ouvrir("systeme", noyau=None)
+        for nom in ("ligne-mce", "ligne-usb"):
+            self.assertEqual(self.badge(nom), ("Vérification impossible", "neutre"), nom)
+
+    def test_memoire_et_materiel_cote_a_cote(self):
+        self.ouvrir("systeme")
+        page = self.f.objet("page-sante")
+        m = self.f.objet("systeme-memoire").mapToItem(page, 0, 0)
+        h = self.f.objet("systeme-materiel").mapToItem(page, 0, 0)
+        self.assertGreater(h.x(), m.x() + 200)
+        self.assertAlmostEqual(h.y(), m.y(), delta=2)
+
+    def test_journal_plantages_du_noyau(self):
+        self.ouvrir("journal", noyau={"plantages": {"nombre": 2, "exemples": ["outil[42]: segfault"]}})
+        self.assertEqual(self.texte("journal-plantages-noyau"), "2 plantages vus par le noyau")
+        self.assertTrue(self.f.objet("journal-plantages-noyau").property("visible"))
+
+    def test_journal_sans_plantage_du_noyau(self):
+        self.ouvrir("journal")
+        self.assertTrue(self.absent("journal-plantages-noyau"))
+
+    def test_resume_phrases(self):
+        self.ouvrir()
+        self.assertEqual(self.texte("resume-phrase-systeme"),
+                         "1 service en échec : maj-apps.service · mémoire : 24 Go libres")
+        self.assertNotIn("Xid", self.texte("resume-phrase-gpu"))
+        disques = self.texte("resume-phrase-disques")
+        self.ouvrir(noyau={"gpu": {"nombre": 2, "graves": 0, "chute": False, "exemples": []}})
+        self.assertIn("2 erreurs du pilote graphique", self.texte("resume-phrase-gpu"))
+        self.assertEqual(self.texte("resume-phrase-disques"), disques)
+
+    def test_resume_phrases_sans_memoire(self):
+        self.ouvrir(memoire=None)
+        self.assertNotIn("mémoire", self.texte("resume-phrase-systeme"))
 
 
 class Resume(Base):
@@ -357,7 +757,7 @@ class Resume(Base):
     def test_une_phrase_par_domaine_avec_sa_mesure_cle(self):
         self.assertEqual(self.phrase("disques"), "NVMe Exemple Z1 usé à 1 %, 35 °C")
         self.assertEqual(self.phrase("gpu"), "NVIDIA GeForce RTX 4070, 38 °C · Ollama arrêté · 9 gels")
-        self.assertEqual(self.phrase("systeme"), "1 service en échec : maj-apps.service")
+        self.assertEqual(self.phrase("systeme"), "1 service en échec : maj-apps.service · mémoire : 24 Go libres")
         self.assertEqual(self.phrase("controles"), "Image à jour · 0 runtime inutilisé")
         self.assertEqual(self.phrase("journal"), "15 erreurs · 23 plantages")
 
@@ -384,7 +784,9 @@ class ResumeControles(Base):
                          "NVMe Exemple Z1 usé à 1 %, 38 °C · 3 erreurs d'E/S")
         self.assertEqual(self.f.objet("resume-phrase-controles").property("text"),
                          "Bazzite 45.20261110 disponible · 2 Flatpak à mettre à jour · 3 runtimes inutilisés")
-        self.assertEqual(self.f.objet("resume-phrase-systeme").property("text"), "Aucun service en échec")
+        self.assertEqual(self.f.objet("resume-phrase-systeme").property("text"),
+                         "Aucun service en échec · mémoire : 24 Go libres")
+        self.assertEqual(self.f.objet("resume-phrase-gpu").property("text").count("Xid"), 0)
 
     def test_resume_disques_coherent_avec_son_badge(self):
         """Task 9 : la phrase ne cite que ce que compte son badge. « Non monté » est un point de Stockage : il reste
@@ -410,8 +812,8 @@ class AutresRubriques(Base):
 
     def test_seul_le_point_de_sante_colore_son_onglet(self):
         etats = {cle: self.f.objet("onglet-" + cle).property("etat") for cle, _ in ONGLETS}
-        self.assertEqual(etats, {"resume": "", "disques": "", "gpu": "", "systeme": "", "controles": "attention",
-                                 "journal": ""})
+        self.assertEqual(etats, {"resume": "", "disques": "", "gpu": "", "systeme": "", "securite": "",
+                                 "controles": "attention", "journal": ""})
         self.assertEqual(self.badge("resume-badge-controles"), ("Attention", "attention"))
         self.assertEqual(self.badge("resume-badge-disques"), ("OK", "ok"))
         self.assertEqual(self.badge("resume-badge-systeme"), ("OK", "ok"))

@@ -15,6 +15,8 @@ ColumnLayout {
     readonly property var erreurs: page.sante.erreurs_journal ?? []
     readonly property var plantages: (page.sante.plantages ?? []).slice()
         .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))
+    // Les plantages vus par le noyau (journal du noyau de cette session), en plus de ceux de coredumpctl.
+    readonly property int plantagesNoyau: page.noyau?.plantages?.nombre ?? 0
     // Côte à côte dès 40 unités de grille (720 px de contenu : fenêtre de 1100 px, menu déplié).
     readonly property bool deuxColonnes: width >= Kirigami.Units.gridUnit * 40
 
@@ -114,6 +116,16 @@ ColumnLayout {
             Layout.preferredWidth: grille.largeurColonne
             Layout.maximumWidth: grille.largeurColonne
             titre: "Plantages récents"
+
+            Controls.Label {
+                objectName: "journal-plantages-noyau"
+                Layout.fillWidth: true
+                visible: onglet.plantagesNoyau > 0
+                text: onglet.plantagesNoyau + (onglet.plantagesNoyau > 1 ? " plantages" : " plantage") + " vus par le noyau"
+                color: Style.texteAttenue
+                font.pointSize: Style.tailleMeta
+                wrapMode: Text.WordWrap
+            }
 
             Controls.Label {
                 visible: onglet.plantages.length === 0

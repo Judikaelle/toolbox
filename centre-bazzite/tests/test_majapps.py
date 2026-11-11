@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -14,6 +15,15 @@ from unittest import mock
 from centre_bazzite import commun
 from centre_bazzite.majapps import appimages, distrobox, doublons, linstat, outils, principal, rapport, vicinae
 from tests import configuration
+
+
+class DossiersTemp:
+    """Dossiers temporaires effacés à la fin de chaque test."""
+
+    def _dossier_temp(self):
+        chemin = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, chemin, ignore_errors=True)
+        return chemin
 
 
 class Versions(unittest.TestCase):
@@ -60,9 +70,9 @@ class Releases(unittest.TestCase):
             outils.asset(self.RELEASE, "c.zip")
 
 
-class Telechargement(unittest.TestCase):
+class Telechargement(DossiersTemp, unittest.TestCase):
     def setUp(self):
-        self.dossier = Path(tempfile.mkdtemp())
+        self.dossier = self._dossier_temp()
         self.source = self.dossier / "source.bin"
         self.source.write_bytes(b"contenu de test" * 1000)
         self.somme = hashlib.sha256(self.source.read_bytes()).hexdigest()
@@ -101,9 +111,9 @@ class DetectionJeu(unittest.TestCase):
         self.assertFalse(commun.est_jeu("jeu", b"NotSteamGameId=12\0"))
 
 
-class Doublons(unittest.TestCase):
+class Doublons(DossiersTemp, unittest.TestCase):
     def test_binaire_qui_masque_brew(self):
-        local, brew = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        local, brew = self._dossier_temp(), self._dossier_temp()
         for nom in ("gh", "outil-perso"):
             (local / nom).write_text("x")
             os.chmod(local / nom, 0o755)
@@ -114,7 +124,7 @@ class Doublons(unittest.TestCase):
 
     def test_scripts_pip_ignores(self):
         """Un point d'entrée pip --user est lié à son paquet Python : pas une vieille copie."""
-        local, brew = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        local, brew = self._dossier_temp(), self._dossier_temp()
         (local / "pip3").write_text("#!/usr/bin/python3\nimport sys\n"
                                     "from pip._internal.cli.main import main\n")
         (local / "yt-dlp").write_bytes(b"#!/usr/bin/env python3\nPK\x03\x04zipapp")
@@ -154,11 +164,11 @@ class Notification(unittest.TestCase):
 ELF = b"\x7fELF" + b"\0" * 60
 
 
-class AppImages(unittest.TestCase):
+class AppImages(DossiersTemp, unittest.TestCase):
     """Mises à jour des AppImages : faux dépôt GitHub (fichiers file://), tout dans un dossier temporaire."""
 
     def setUp(self):
-        self.racine = Path(tempfile.mkdtemp())
+        self.racine = self._dossier_temp()
         self.cache = self.racine / "cache"
         self.etat = self.racine / "etat"
         self.etat.mkdir()

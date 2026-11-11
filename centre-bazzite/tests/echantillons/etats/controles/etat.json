@@ -141,7 +141,82 @@
     "nom": "Données",
     "chemin": "/var/mnt/DONNEES"
    }
-  ]
+  ],
+  "noyau": {
+   "gpu": {
+    "nombre": 0,
+    "exemples": [],
+    "graves": 0,
+    "chute": false
+   },
+   "materiel": {
+    "nombre": 0,
+    "exemples": []
+   },
+   "usb": {
+    "nombre": 0,
+    "exemples": []
+   },
+   "plantages": {
+    "nombre": 0,
+    "exemples": []
+   }
+  },
+  "memoire": {
+   "total": 34359738368,
+   "disponible": 25769803776,
+   "swap_total": 8589934592,
+   "swap_utilise": 0,
+   "attente": 0.4,
+   "zram": []
+  },
+  "securite": {
+   "pare_feu": {
+    "actif": true,
+    "zone": "FedoraWorkstation",
+    "ports": [
+     "1025-65535/tcp",
+     "1025-65535/udp"
+    ],
+    "services": [
+     "dhcpv6-client",
+     "ssh"
+    ],
+    "ouvre_hauts": true
+   },
+   "ports": {
+    "inconnus": [],
+    "connus": [
+     {
+      "prog": "jeu-reseau",
+      "ports": [
+       27015
+      ]
+     }
+    ],
+    "systeme": [
+     5353
+    ]
+   },
+   "demarrage": {
+    "lus": 31,
+    "incomplet": false,
+    "trouves": []
+   },
+   "ld_preload": [],
+   "temporaires": {
+    "nombre": 0,
+    "exemples": [],
+    "examines": 412,
+    "plafond_atteint": false
+   },
+   "cache": [
+    {
+     "dossier": "uv",
+     "nombre": 120
+    }
+   ]
+  }
  },
  "points": [
   {

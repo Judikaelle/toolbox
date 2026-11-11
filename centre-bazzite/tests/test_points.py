@@ -347,6 +347,159 @@ class Controles(unittest.TestCase):
         self.assertEqual(sourdines, {"menage:runtimes": 3.0})
 
 
+SECURITE = {
+    "pare_feu": {"actif": False, "zone": "FedoraWorkstation", "ports": [], "services": [], "ouvre_hauts": True},
+    "ports": {"inconnus": [{"prog": "serveur-dev", "ports": [3000, 3001]}], "connus": [], "systeme": []},
+    "demarrage": {"lus": 3, "incomplet": False, "trouves": [
+        {"chemin": str(Path.home() / ".config/autostart/outil.desktop"), "role": "démarrage automatique",
+         "gravite": "echec", "quoi": "se connecte à une adresse suspecte", "numero": 4, "ligne": "Exec=outil"},
+        {"chemin": "/etc/profile.d/x.sh", "role": "script de session", "gravite": "attention",
+         "quoi": "lance quelque chose depuis un dossier temporaire", "numero": 2, "ligne": "/tmp/a"}]},
+    "ld_preload": ["/lib/x.so", "/lib/y.so"],
+    "temporaires": {"nombre": 2, "exemples": ["/tmp/a", "/tmp/b"], "examines": 10, "plafond_atteint": False},
+    "cache": None}
+
+
+def noyau(**kw):
+    base = {"gpu": {"nombre": 0, "graves": 0, "chute": False, "exemples": []},
+            "materiel": {"nombre": 0, "exemples": []}, "usb": {"nombre": 0, "exemples": []},
+            "plantages": {"nombre": 0, "exemples": []}}
+    base.update(kw)
+    return base
+
+
+def memoire(attente=0.0, disponible=50, swap_total=1, zram=None):
+    return {"total": 100, "disponible": disponible, "swap_total": swap_total, "swap_utilise": 0,
+            "attente": attente, "zram": [{"nom": "zram0"}] if zram is None else zram}
+
+
+class PointsSanteEnrichie(unittest.TestCase):
+    def test_points_noyau(self):
+        def gpu(**kw):
+            return {"nombre": 1, "graves": 0, "chute": False, "exemples": ["NVRM: Xid 13"], **kw}
+        self.assertEqual(par_id(calculer(sante(noyau=noyau(gpu=gpu(chute=True, graves=1)))))["noyau:gpu"]["gravite"], "echec")
+        self.assertEqual(par_id(calculer(sante(noyau=noyau(gpu=gpu(graves=1)))))["noyau:gpu"]["gravite"], "attention")
+        g = par_id(calculer(sante(noyau=noyau(gpu=gpu()))))["noyau:gpu"]
+        self.assertEqual((g["gravite"], g["mesure"], g["cran"]), ("info", 1.0, 1.0))
+        # en attention ou en échec, la mesure est le nombre d'erreurs graves : une Xid d'application ne lève pas la sourdine
+        sg = lambda **kw: par_id(calculer(sante(noyau=noyau(gpu=gpu(nombre=9, **kw)))))["noyau:gpu"]
+        self.assertEqual((sg(graves=2)["gravite"], sg(graves=2)["mesure"]), ("attention", 2.0))
+        self.assertEqual(sg(chute=True, graves=3)["mesure"], 3.0)
+        self.assertEqual(sg()["mesure"], 9.0)
+        self.assertIn("journalctl -k -b", g["detail"])
+        self.assertIsNone(g["action"])
+        self.assertNotIn("noyau:gpu", par_id(calculer(sante(noyau=noyau()))))
+        m = par_id(calculer(sante(noyau=noyau(materiel={"nombre": 1, "exemples": ["a"]}))))["noyau:materiel"]
+        self.assertEqual(m["gravite"], "attention")
+        u = lambda n: par_id(calculer(sante(noyau=noyau(usb={"nombre": n, "exemples": []}))))
+        self.assertEqual(u(19)["noyau:usb"]["gravite"], "info")
+        self.assertEqual(u(20)["noyau:usb"]["gravite"], "attention")
+        self.assertEqual((u(20)["noyau:usb"]["mesure"], u(20)["noyau:usb"]["cran"]), (20.0, 10.0))
+        pl = lambda n: par_id(calculer(sante(noyau=noyau(plantages={"nombre": n, "exemples": []}))))
+        self.assertNotIn("noyau:plantages", pl(19))
+        self.assertEqual(pl(20)["noyau:plantages"]["gravite"], "attention")
+        self.assertEqual(P.domaine("noyau:plantages"), "journal")
+        self.assertNotIn("noyau:gpu", par_id(calculer(sante(noyau=None))))
+
+    def test_points_memoire(self):
+        pts = lambda **kw: par_id(calculer(sante(memoire=memoire(**kw))))
+        self.assertNotIn("memoire:pression", pts(attente=4.9))
+        p = pts(attente=5.0)["memoire:pression"]
+        self.assertEqual((p["gravite"], p["mesure"], p["cran"]), ("attention", 5.0, 5.0))
+        self.assertIn("5.0 %", p["detail"].replace(",", "."))
+        self.assertEqual(pts(attente=20)["memoire:pression"]["gravite"], "echec")
+        p = pts(attente=0.0, disponible=9)["memoire:pression"]
+        self.assertEqual((p["gravite"], p["mesure"]), ("attention", 0.0))
+        self.assertNotIn("memoire:pression", pts(attente=None))
+        p = pts(attente=None, disponible=9)["memoire:pression"]
+        self.assertEqual(p["mesure"], 0.0)
+        self.assertIn("Il ne reste que 9 % de mémoire disponible", p["detail"])
+        self.assertNotIn("attendu la mémoire", p["detail"])
+        p = pts(attente=2.0, disponible=9)["memoire:pression"]
+        self.assertIn("Il ne reste que 9 % de mémoire disponible", p["detail"])
+        self.assertIn("attendu la mémoire 5,0 %", pts(attente=5.0)["memoire:pression"]["detail"])
+        self.assertNotIn("Il ne reste que", pts(attente=5.0)["memoire:pression"]["detail"])
+        s = pts(swap_total=0, zram=[])["memoire:sans-swap"]
+        self.assertEqual((s["gravite"], s["mesure"], s["cran"]), ("attention", 0.0, 1.0))
+        self.assertIn("systemctl status systemd-zram-setup@zram0", s["detail"])
+        self.assertNotIn("memoire:sans-swap", pts(swap_total=0))
+        self.assertNotIn("memoire:sans-swap", pts(zram=[]))
+
+    def test_points_securite(self):
+        p = par_id(calculer(sante(securite=SECURITE)))
+        pf = p["securite:pare-feu"]
+        self.assertEqual((pf["gravite"], pf["mesure"], pf["cran"]), ("echec", 1.0, 1.0))
+        self.assertIn("sudo systemctl enable --now firewalld", pf["detail"])
+        po = p["securite:port:serveur-dev"]
+        self.assertEqual((po["gravite"], po["mesure"], po["cran"]), ("attention", 2.0, 1.0))
+        self.assertEqual(po["titre"], "serveur-dev accepte des connexions du réseau (ports 3000, 3001)")
+        self.assertIn("127.0.0.1", po["detail"])
+        self.assertIn("serveurs_connus", po["detail"])
+        self.assertIn("FedoraWorkstation", po["detail"])
+        self.assertIn("joignable par les autres appareils", po["detail"])
+        for pf2 in ({"actif": True, "zone": "public", "ports": [], "services": [], "ouvre_hauts": False},
+                    {"actif": True, "zone": "public", "ports": [], "services": [], "ouvre_hauts": True}):
+            po2 = par_id(calculer(sante(securite={**SECURITE, "pare_feu": pf2,
+                                                  "ports": {"inconnus": [{"prog": "serveur-dev", "ports": [900]}],
+                                                            "connus": [], "systeme": []}})))["securite:port:serveur-dev"]
+            self.assertNotIn("joignable par les autres appareils", po2["detail"])
+            self.assertIn("le pare-feu bloque peut-être ce port", po2["detail"])
+        d = p["securite:demarrage:" + SECURITE["demarrage"]["trouves"][0]["chemin"]]
+        self.assertEqual((d["gravite"], d["mesure"]), ("echec", 1.0))
+        self.assertEqual(d["titre"], "outil.desktop se connecte à une adresse suspecte")
+        self.assertIn("~/.config/autostart/outil.desktop", d["detail"])
+        self.assertNotIn(str(Path.home()), d["detail"])
+        self.assertIn("ligne 4 : Exec=outil", d["detail"])
+        self.assertIn("xdg-open", d["detail"])
+        self.assertIn("La page Démarrage permet de le désactiver.", d["detail"])
+        # une unité vue seulement par le scan direct : la page Démarrage ne la liste pas
+        sec = {**SECURITE, "demarrage": {"lus": 1, "incomplet": False, "trouves": [
+            {"chemin": "/home/u/.config/systemd/user/x.service", "role": "service systemd personnel (hors page Démarrage)",
+             "gravite": "attention", "quoi": "q", "numero": 1, "ligne": "l"}]}}
+        d3 = par_id(calculer(sante(securite=sec)))["securite:demarrage:/home/u/.config/systemd/user/x.service"]
+        self.assertNotIn("La page Démarrage", d3["detail"])
+        self.assertIn("systemctl --user disable --now x.service", d3["detail"])
+        d2 = p["securite:demarrage:/etc/profile.d/x.sh"]
+        self.assertEqual((d2["gravite"], d2["mesure"]), ("attention", 0.0))
+        self.assertNotIn("La page Démarrage", d2["detail"])
+        ld = p["securite:ld-preload"]
+        self.assertEqual((ld["gravite"], ld["mesure"]), ("echec", 2.0))
+        t = p["securite:temporaires"]
+        self.assertEqual((t["gravite"], t["mesure"], t["cran"]), ("attention", 2.0, 1.0))
+        self.assertIn("find /tmp /var/tmp /dev/shm -xdev -type f -perm -u+x", t["detail"])
+        self.assertTrue(all(x["action"] is None for x in p.values() if x["id"].startswith("securite:")))
+        actif = dict(SECURITE, pare_feu=dict(SECURITE["pare_feu"], actif=True))
+        self.assertNotIn("securite:pare-feu", par_id(calculer(sante(securite=actif))))
+        sans = dict(SECURITE, ports={"inconnus": [], "connus": [], "systeme": []})
+        pf = par_id(calculer(sante(securite=sans)))["securite:pare-feu"]
+        self.assertEqual((pf["gravite"], pf["mesure"]), ("attention", 0.0))
+        self.assertEqual(par_id(calculer(sante(securite=None))).keys() & {"securite:pare-feu"}, set())
+
+    def test_temporaires_au_moins(self):
+        s = dict(SECURITE, temporaires={"nombre": 5, "exemples": ["/tmp/%d" % i for i in range(7)],
+                                        "examines": 9, "plafond_atteint": True})
+        t = par_id(calculer(sante(securite=s)))["securite:temporaires"]
+        self.assertIn("Au moins", t["detail"])
+        self.assertNotIn("/tmp/5", t["detail"])
+
+    def test_releve_securite_par_sous_mesure(self):
+        s = {"securite": {"ports": None, "temporaires": {"nombre": 0}}}
+        self.assertFalse(P.releve("securite:port:x", s))
+        self.assertTrue(P.releve("securite:temporaires", s))
+        self.assertFalse(P.releve("securite:pare-feu", s))
+        self.assertFalse(P.releve("securite:pare-feu", {"securite": None}))
+        self.assertFalse(P.releve("securite:demarrage:/x", s))
+        self.assertFalse(P.releve("securite:ld-preload", s))
+        dem = lambda **kw: {"securite": {"demarrage": {"lus": 3, "trouves": [], **kw}}}
+        ident = "securite:demarrage:~/.config/systemd/user/x.service"
+        self.assertFalse(P.releve(ident, dem(incomplet=True)))
+        self.assertTrue(P.releve(ident, dem(incomplet=False)))
+        self.assertFalse(P.releve("noyau:gpu", {"noyau": None}))
+        self.assertTrue(P.releve("noyau:gpu", {"noyau": noyau()}))
+        self.assertTrue(P.releve("memoire:pression", {"memoire": memoire()}))
+        self.assertFalse(P.releve("memoire:sans-swap", {"memoire": None}))
+
+
 class Rubriques(unittest.TestCase):
     def test_rubrique(self):
         self.assertEqual(P.rubrique("maj:echec:uupd:2026-11-09T04:00:00"), "majs")
@@ -401,11 +554,14 @@ class Rubriques(unittest.TestCase):
             "journal:erreurs": "journal",
             "plantages": "journal",
             "inconnu:x": "systeme",
+            "noyau:gpu": "gpu", "noyau:materiel": "systeme", "noyau:usb": "systeme",
+            "noyau:plantages": "journal", "memoire:pression": "systeme", "memoire:sans-swap": "systeme",
+            "securite:port:x": "securite", "securite:temporaires": "securite",
         }
         for id_, domaine in table.items():
             self.assertEqual(P.domaine(id_), domaine, id_)
 
-    def test_tout_point_produit_a_un_des_cinq_domaines(self):
+    def test_tout_point_produit_a_un_des_six_domaines(self):
         sante = {"ssd": [{"modele": "M", "sante": {"usure": 90, "reserve": 5, "seuil_reserve": 10, "temperature": 75,
                                                    "erreurs_media": 1, "avertissements": []}}],
                  "non_montes": ["/var/mnt/DONNEES"], "erreurs_disque": {"nombre": 2, "exemples": []},
@@ -416,11 +572,18 @@ class Rubriques(unittest.TestCase):
                                "runtimes": {"inutilises": ["r"], "gl_obsoletes": []}, "telechargements": [],
                                "caches": {"miniatures": 0, "corbeille": 0, "journal": 2 * 1024 ** 3},
                                "boot": {"nom": "Démarrage", "chemin": "/boot", "libre_go": 0.01, "total_go": 1,
-                                        "pourcent_utilise": 99}}}
+                                        "pourcent_utilise": 99}},
+                 "noyau": {"gpu": {"nombre": 1, "graves": 1, "chute": False, "exemples": ["x"]},
+                           "materiel": {"nombre": 1, "exemples": ["x"]}, "usb": {"nombre": 25, "exemples": []},
+                           "plantages": {"nombre": 25, "exemples": []}},
+                 "memoire": {"total": 100, "disponible": 5, "swap_total": 0, "swap_utilise": 0,
+                             "attente": 30.0, "zram": []},
+                 "securite": SECURITE}
         pts = P.points(sante, {"en_attente": {"version": "45.2"}, "nombre": 4}, maintenant=datetime(2026, 11, 9, 12))
         self.assertGreater(len(pts), 10)
         for p in pts:
-            self.assertIn(P.domaine(p["id"]), {"disques", "gpu", "systeme", "controles", "journal"}, p["id"])
+            self.assertIn(P.domaine(p["id"]), {"disques", "gpu", "systeme", "controles", "journal", "securite"}, p["id"])
+        self.assertGreater(len({P.domaine(p["id"]) for p in pts}), 5)
 
     def test_compteurs_ignorent_info_et_sourdine(self):
         pts = [P._point("volume:/var/mnt/EXTERNE", "attention", "t", "d"),

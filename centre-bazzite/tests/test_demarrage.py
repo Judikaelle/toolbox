@@ -1244,5 +1244,41 @@ class Cli(unittest.TestCase):
         self.assertNotIn("demarrage", cli.LOURDES)       # D9 : léger, jamais reporté pendant un jeu
 
 
+
+class FichiersDecouverts(unittest.TestCase):
+    """fichiers_autostart et fichiers_unites : les chemins que la découverte des pages Démarrage ne rend pas."""
+
+    def _dossiers(self):
+        t = tempfile.TemporaryDirectory()
+        self.addCleanup(t.cleanup)
+        systeme, utilisateur = Path(t.name) / "systeme", Path(t.name) / "utilisateur"
+        systeme.mkdir()
+        utilisateur.mkdir()
+        return systeme, utilisateur
+
+    def test_fichiers_autostart_priorite_utilisateur_et_ignores(self):
+        systeme, utilisateur = self._dossiers()
+        ok = "[Desktop Entry]\nName=Outil\nExec=outil\n"
+        (systeme / "outil.desktop").write_text(ok, encoding="utf-8")
+        (utilisateur / "outil.desktop").write_text(ok, encoding="utf-8")
+        (systeme / "seul.desktop").write_text(ok, encoding="utf-8")
+        (systeme / "gnome.desktop").write_text(ok + "OnlyShowIn=GNOME;\n", encoding="utf-8")
+        r = D.fichiers_autostart(systeme, utilisateur, existe=lambda c: "/usr/bin/" + c)
+        self.assertEqual(r, [utilisateur / "outil.desktop", systeme / "seul.desktop"])
+
+    def test_fichiers_unites(self):
+        appels = []
+
+        def run(cmd, timeout=120, entree=None):
+            appels.append(list(cmd))
+            if cmd == D.LISTE_UTILISATEUR:
+                return 0, "a.service enabled enabled\nb.service disabled enabled\n"
+            return 0, ("Id=a.service\nFragmentPath=/home/u/.config/systemd/user/a.service\n\n"
+                       "Id=b.service\nFragmentPath=\n")
+        self.assertEqual(D.fichiers_unites(run), [Path("/home/u/.config/systemd/user/a.service")])
+        with self.assertRaises(D.LectureImpossible):
+            D.fichiers_unites(lambda cmd, timeout=120, entree=None: (1, "boom"))
+
+
 if __name__ == "__main__":
     unittest.main()

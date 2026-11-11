@@ -189,6 +189,29 @@ def jeux(chemin=None):
     return {"steam": steam, "emulateurs": emulateurs}
 
 
+# --- Sécurité (page Santé, onglet Sécurité) ---
+def securite(chemin=None):
+    """[securite] : `temporaires_ignores` (dossiers absolus ou en ~ où des programmes sont normaux, ignorés avec leurs
+    sous-dossiers par l'analyse des dossiers temporaires) et `serveurs_connus` (programmes, tels que `ss` les nomme, dont
+    les ports ouverts au réseau sont voulus). Listes vides par défaut ; une entrée mal formée est ignorée, avec un
+    avertissement."""
+    section = _section(lire(chemin), "securite")
+    temporaires = []
+    for texte in _liste(section, "temporaires_ignores"):
+        p = _chemin_absolu(texte)
+        if p is None:
+            _avertir(f"dossier temporaire ignoré (il faut un chemin absolu ou en ~) : {texte!r}")
+        else:
+            temporaires.append(p)
+    serveurs = []
+    for nom in _liste(section, "serveurs_connus"):
+        if isinstance(nom, str) and nom.strip():
+            serveurs.append(nom.strip())
+        else:
+            _avertir(f"serveur connu ignoré (il faut un nom de programme) : {nom!r}")
+    return {"temporaires_ignores": temporaires, "serveurs_connus": serveurs}
+
+
 # --- Mode jeu (Task 4) ---
 MODEJEU = ("actif", "ollama", "ne_pas_deranger", "profil", "taches")
 

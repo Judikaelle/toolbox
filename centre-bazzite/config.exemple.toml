@@ -111,3 +111,12 @@
 # ne_pas_deranger = true
 # profil = true
 # taches = true
+
+# --- Sécurité (page Santé, onglet Sécurité) ---
+#   temporaires_ignores : dossiers où des programmes sont normaux ; ignorés avec leurs sous-dossiers
+#   serveurs_connus     : programmes, tels que `ss` les nomme, dont les ports ouverts au réseau sont voulus
+#                         (jamais en orange)
+#
+# [securite]
+# temporaires_ignores = ["/tmp/exemple"]
+# serveurs_connus = ["serveur-exemple"]

@@ -4,7 +4,9 @@ Une petite appli KDE pour [Bazzite](https://bazzite.gg) qui réunit trois choses
 
 - **Mises à jour** : l'image système, les Flatpak et Homebrew (par `uupd`, le service de Bazzite), plus ce que `uupd`
   ignore (outils installés à la main, AppImages, conteneurs distrobox), avec un résumé des notes de version ;
-- **Santé** : SSD (usure, température), GPU, services en échec, erreurs du journal, plantages, contrôles hebdomadaires ;
+- **Santé** : SSD (usure, température), GPU, services en échec, erreurs du journal, plantages, contrôles hebdomadaires,
+  noyau (carte graphique, processeur et mémoire, USB), pression mémoire et sécurité légère (pare-feu, ports ouverts,
+  fichiers de démarrage, dossiers temporaires), en lecture seule ;
 - **Stockage** : disques physiques et volumes, analyse de l'espace (avec LinStat, facultatif), ménage guidé et pistes
   pour libérer de la place.
 
@@ -77,6 +79,11 @@ QT_QPA_PLATFORM=offscreen python3 -m unittest discover -s tests
 
 Les tests ne lancent aucune vraie mise à jour, n'envoient aucune notification et ne lisent jamais la configuration
 locale : ils ont la leur (`tests/echantillons/config.toml`), avec des noms d'exemple.
+
+## Remerciements
+
+Les contrôles du noyau, de la mémoire et de la sécurité sont repris et adaptés de
+[Bilan Santé PC](https://github.com/BiasedMonkey/bilan-sante) de BiasedMonkey (GPL-3.0).
 
 ## Licence
 

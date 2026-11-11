@@ -1,0 +1,2 @@
+nov. 10 09:12:00 machine kernel: NVRM: GPU at PCI:0000:01:00: GPU has fallen off the bus.
+nov. 10 09:12:00 machine kernel: NVRM: Xid (PCI:0000:01:00): 79, pid=1234, name=jeu, GPU has fallen off the bus.

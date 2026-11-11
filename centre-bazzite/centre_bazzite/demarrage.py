@@ -655,6 +655,16 @@ def applis(systeme=None, utilisateur=None, existe=shutil.which, journal=None):
     return entrees, ignorees
 
 
+def fichiers_autostart(systeme=None, utilisateur=None, existe=shutil.which):
+    """Les fichiers *.desktop effectivement lus pour `applis` (mêmes entrées, même priorité : le fichier utilisateur de
+    même nom l'emporte sur celui du système). Ceux qu'`applis` ignore n'y figurent pas."""
+    systeme = Path(systeme) if systeme is not None else AUTOSTART_SYSTEME
+    utilisateur = Path(utilisateur) if utilisateur is not None else _autostart_utilisateur()
+    entrees, _ = applis(systeme, utilisateur, existe)
+    fichiers = sorted(e["id"].split(":", 1)[1] for e in entrees)
+    return [utilisateur / f if (utilisateur / f).is_file() else systeme / f for f in fichiers]
+
+
 # --- Unités systemd de l'utilisateur (D4, D5) ---
 
 def _racine_utilisateur():
@@ -729,6 +739,12 @@ def _lire_unites(run):
                     "prochaine_monotone": p.get("NextElapseUSecMonotonic", ""),
                     "description": "" if description == n else description, "fragment": p.get("FragmentPath", "")})
     return res
+
+
+def fichiers_unites(run=commun.run):
+    """Les fichiers (FragmentPath) des unités candidates de `systemctl --user` ; ceux sans chemin sont sautés.
+    Lève LectureImpossible si systemctl ne répond pas."""
+    return [Path(u["fragment"]) for u in _lire_unites(run) if u["fragment"]]
 
 
 def _en_date(maintenant):

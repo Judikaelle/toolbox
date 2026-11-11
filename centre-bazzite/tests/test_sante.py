@@ -201,13 +201,14 @@ class Collecte(unittest.TestCase):
                 sante, ssd=mock.Mock(side_effect=RuntimeError("boum")), temperatures=rien,
                 gpu=rien, volumes=rien, services_en_echec=rien, erreurs_journal=rien,
                 plantages=rien, bilan_hebdo=rien, gels=rien, ollama=rien, lire_controles=rien,
-                erreurs_disque=rien, non_montes=rien):
+                journal_noyau=mock.Mock(return_value={"disque": [], "gpu": []}), non_montes=rien, memoire=rien, securite=rien):
             r = sante.collecter()
         self.assertIsNone(r["ssd"])
         for cle in ("temperatures", "gpu", "volumes", "services_en_echec", "erreurs_journal",
                     "plantages", "bilan_hebdo", "gels", "ollama", "controles", "erreurs_disque",
-                    "non_montes"):
+                    "non_montes", "memoire", "securite"):
             self.assertEqual(r[cle], [], cle)
+        self.assertEqual(r["noyau"], {"gpu": []})
 
     def test_collecter_lit_le_cache_des_controles(self):
         rien = mock.Mock(return_value=[])
@@ -218,7 +219,7 @@ class Collecte(unittest.TestCase):
             with mock.patch.object(sante, "CONTROLES", cache), mock.patch.multiple(
                     sante, ssd=rien, temperatures=rien, gpu=rien, volumes=rien, services_en_echec=rien,
                     erreurs_journal=rien, plantages=rien, bilan_hebdo=rien, gels=rien, ollama=rien,
-                    erreurs_disque=rien, non_montes=rien, controles=lancer):
+                    journal_noyau=rien, non_montes=rien, memoire=rien, securite=rien, controles=lancer):
                 r = sante.collecter()
                 self.assertEqual(r["controles"], {"date": "2026-11-09T10:00:00", "image": None})
                 cache.unlink()
@@ -255,9 +256,53 @@ class VolumesConfigures(unittest.TestCase):
         with configuration(self.CONF), mock.patch.multiple(
                 sante, ssd=rien, temperatures=rien, gpu=rien, volumes=rien, services_en_echec=rien,
                 erreurs_journal=rien, plantages=rien, bilan_hebdo=rien, gels=rien, ollama=rien, lire_controles=rien,
-                erreurs_disque=rien, non_montes=rien):
+                journal_noyau=rien, non_montes=rien, memoire=rien, securite=rien):
             r = sante.collecter()
         self.assertEqual(r["attendus"], [{"nom": "Atelier", "chemin": "/var/mnt/ATELIER"}])
+
+
+class Memoire(unittest.TestCase):
+    """Faux /proc et /sys/block dans un dossier temporaire : jamais les vrais."""
+    PSI = ("some avg10=1.00 avg60=2.00 avg300=6.50 total=1\n"
+           "full avg10=0.00 avg60=0.00 avg300=0.00 total=1")
+    MEMINFO = ("MemTotal:       16000000 kB\nMemFree:         1000000 kB\nMemAvailable:    4000000 kB\n"
+               "SwapTotal:       8000000 kB\nSwapFree:        6000000 kB\n")
+
+    def arbre(self, psi=PSI, meminfo=MEMINFO, mm_stat="100000000 30000000 32000000 0 32000000 0 0 0 0"):
+        t = tempfile.TemporaryDirectory()
+        self.addCleanup(t.cleanup)
+        proc, blocs = Path(t.name) / "proc", Path(t.name) / "blocs"
+        (proc / "pressure").mkdir(parents=True)
+        (blocs / "zram0").mkdir(parents=True)
+        if psi is not None:
+            (proc / "pressure" / "memory").write_text(psi, encoding="utf-8")
+        if meminfo is not None:
+            (proc / "meminfo").write_text(meminfo, encoding="utf-8")
+        if mm_stat is not None:
+            (blocs / "zram0" / "mm_stat").write_text(mm_stat, encoding="utf-8")
+            (blocs / "zram0" / "comp_algorithm").write_text("lzo lzo-rle [zstd] lz4\n", encoding="utf-8")
+        return proc, blocs
+
+    def test_memoire_lue(self):
+        m = sante.memoire(*self.arbre())
+        self.assertEqual(m["attente"], 6.5)
+        self.assertEqual(m["total"], 16000000 * 1024)
+        self.assertEqual(m["disponible"], 4000000 * 1024)
+        self.assertEqual(m["swap_total"], 8000000 * 1024)
+        self.assertEqual(m["swap_utilise"], 2000000 * 1024)
+        self.assertEqual(m["zram"], [{"nom": "zram0", "donnees": 100000000, "compresse": 30000000, "algo": "zstd"}])
+
+    def test_sans_psi(self):
+        m = sante.memoire(*self.arbre(psi=None))
+        self.assertIsNone(m["attente"])
+        self.assertEqual(m["total"], 16000000 * 1024)
+
+    def test_zram_vide_ignore(self):
+        self.assertEqual(sante.memoire(*self.arbre(mm_stat="0 0 0 0 0 0 0 0 0"))["zram"], [])
+
+    def test_meminfo_illisible_leve(self):
+        with self.assertRaises(OSError):
+            sante.memoire(*self.arbre(meminfo=None))
 
 
 # --- Contrôles repris de bazzite-health ---
@@ -333,6 +378,90 @@ class LecturesControles(unittest.TestCase):
         self.assertEqual((r["nombre"], len(r["exemples"])), (7, 3))
 
 
+class Noyau(unittest.TestCase):
+    """Le journal du noyau lu en une passe et classé par catégorie."""
+
+    def test_categories(self):
+        brut = texte("journal-noyau-categories.txt")
+        r = sante.lire_noyau(brut)
+        self.assertEqual((r["gpu"]["nombre"], r["gpu"]["graves"], r["gpu"]["chute"]), (3, 1, False))
+        self.assertEqual(r["materiel"]["nombre"], 2)
+        self.assertEqual(r["usb"]["nombre"], 2)
+        self.assertEqual(r["plantages"]["nombre"], 2)
+        self.assertEqual(r["disque"], sante.lire_erreurs_disque(brut))
+        exemples = [e for c, v in r.items() if c != "disque" for e in v["exemples"]]
+        self.assertTrue(exemples)
+        self.assertFalse(any("machine kernel:" in e for e in exemples))
+        self.assertFalse(any("memMap_IMPL" in e for e in exemples))
+
+    def test_chute_du_bus(self):
+        r = sante.lire_noyau(texte("journal-noyau-chute.txt"))
+        self.assertTrue(r["gpu"]["chute"])
+        self.assertEqual(r["gpu"]["graves"], 2)
+
+    def test_ligne_de_commande_du_noyau_pas_une_erreur(self):
+        options = ("BOOT_IMAGE=(hd0,gpt2)/vmlinuz root=UUID=x rd.driver.blacklist=nouveau modprobe.blacklist=nouveau "
+                   "nvidia-drm.modeset=1 nvme_core.default_ps_max_latency_us=0 amdgpu.ppfeaturemask=0xffffffff "
+                   "amdgpu.lockup_timeout=10000")
+        brut = "\n".join([f"m kernel: Command line: {options}", f"m kernel: Kernel command line: {options}",
+                          "m kernel: MCE: In-kernel MCE decoding enabled.",
+                          "m kernel: RAS: Correctable Errors collector initialized."])
+        r = sante.lire_noyau(brut)
+        self.assertEqual([r[c]["nombre"] for c in ("disque", "gpu", "materiel", "usb", "plantages")], [0] * 5)
+
+    def test_edac_sans_erreur_de_memoire(self):
+        brut = ("m kernel: EDAC sbridge: Failed to register device with error -19.\n"
+                "m kernel: EDAC amd64: Error: F0 not found, device 0x1460 (broken BIOS?)\n"
+                "m kernel: EDAC MC0: 1 CE memory read error on DIMM_A1\n")
+        self.assertEqual(sante.lire_noyau(brut)["materiel"]["nombre"], 1)
+
+    def test_motifs_autres_cartes(self):
+        r = sante.lire_noyau("m kernel: amdgpu: ring gfx_0.0.0 timeout\nm kernel: i915 0000:00:02.0: GPU HANG\n")
+        self.assertEqual(r["gpu"]["graves"], 2)
+
+    def test_exemples_distincts_trois_derniers(self):
+        lignes = ["m kernel: usb 3-2: device descriptor read/64, error -71"] * 5
+        lignes += [f"m kernel: usb 3-{i}: device not accepting address {i}, error -71" for i in (3, 4, 5)]
+        r = sante.lire_noyau("\n".join(lignes))
+        self.assertEqual(r["usb"]["nombre"], 8)
+        self.assertEqual(len(r["usb"]["exemples"]), 3)
+        self.assertEqual(len(set(r["usb"]["exemples"])), 3)
+
+    def test_exemples_gardent_la_derniere_occurrence(self):
+        lignes = [f"m kernel: usb {x}: error -71" for x in "ABCDA"]
+        r = sante.lire_noyau("\n".join(lignes))
+        self.assertEqual(r["usb"]["exemples"], [f"usb {x}: error -71" for x in "CDA"])
+
+    def test_un_seul_journalctl(self):
+        rien = mock.Mock(return_value=[])
+        appels = []
+
+        def faux_run(cmd, **kw):
+            appels.append(cmd)
+            return 0, texte("journal-noyau-categories.txt")
+
+        with mock.patch.multiple(
+                sante, ssd=rien, temperatures=rien, gpu=rien, volumes=rien, services_en_echec=rien,
+                erreurs_journal=rien, plantages=rien, bilan_hebdo=rien, gels=rien, ollama=rien,
+                lire_controles=rien, non_montes=rien, volumes_attendus=rien, securite=rien), \
+                mock.patch("centre_bazzite.commun.run", faux_run):
+            r = sante.collecter()
+        self.assertEqual(appels, [["journalctl", "-k", "-b", "--no-pager"]])
+        self.assertEqual(r["erreurs_disque"]["nombre"], 1)
+        self.assertEqual(sorted(r["noyau"]), ["gpu", "materiel", "plantages", "usb"])
+
+    def test_journal_illisible(self):
+        rien = mock.Mock(return_value=[])
+        with mock.patch.multiple(
+                sante, ssd=rien, temperatures=rien, gpu=rien, volumes=rien, services_en_echec=rien,
+                erreurs_journal=rien, plantages=rien, bilan_hebdo=rien, gels=rien, ollama=rien,
+                lire_controles=rien, non_montes=rien, volumes_attendus=rien, securite=rien), \
+                mock.patch("centre_bazzite.commun.run", return_value=(1, "boum")):
+            r = sante.collecter()
+        self.assertIsNone(r["erreurs_disque"])
+        self.assertIsNone(r["noyau"])
+
+
 class MesuresControles(unittest.TestCase):
     def setUp(self):
         d = tempfile.TemporaryDirectory()
@@ -373,10 +502,10 @@ class MesuresControles(unittest.TestCase):
 
     def test_erreurs_disque(self):
         with mock.patch("centre_bazzite.commun.run", return_value=(0, texte("journal-noyau.txt"))) as m:
-            self.assertEqual(sante.erreurs_disque()["nombre"], 2)
+            self.assertEqual(sante.journal_noyau()["disque"]["nombre"], 2)
         self.assertEqual(m.call_args.args[0][:3], ["journalctl", "-k", "-b"])
         with mock.patch("centre_bazzite.commun.run", return_value=(1, "boum")):
-            self.assertIsNone(sante.erreurs_disque())
+            self.assertIsNone(sante.journal_noyau())
 
 
 def faux_disque(chemin):

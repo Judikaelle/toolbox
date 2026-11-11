@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 from centre_bazzite import config
+from tests import configuration
 
 COMPLET = """
 [[volumes]]
@@ -227,6 +228,32 @@ class Complet(Base):
         self.assertEqual(config.contexte_resume(self.chemin), "Camille, qui joue sous Bazzite")
 
 
+class Securite(unittest.TestCase):
+    """[securite] : dossiers temporaires ignorés (chemins absolus) et serveurs connus (noms de programmes)."""
+
+    def lire(self, texte):
+        err = io.StringIO()
+        with configuration(texte), contextlib.redirect_stderr(err):
+            return config.securite(), err.getvalue()
+
+    def test_securite_absente_valeurs_neutres(self):
+        res, err = self.lire("")
+        self.assertEqual(res, {"temporaires_ignores": [], "serveurs_connus": []})
+        self.assertEqual(err, "")
+
+    def test_securite_lue(self):
+        res, err = self.lire('[securite]\ntemporaires_ignores = ["/tmp/exemple", "~/x"]\n'
+                             'serveurs_connus = ["serveur-exemple"]\n')
+        self.assertEqual(res["temporaires_ignores"], [Path("/tmp/exemple"), Path.home() / "x"])
+        self.assertEqual(res["serveurs_connus"], ["serveur-exemple"])
+        self.assertEqual(err, "")
+
+    def test_securite_entrees_mal_formees_ignorees(self):
+        res, err = self.lire('[securite]\ntemporaires_ignores = ["relatif", 3]\nserveurs_connus = [""]\n')
+        self.assertEqual(res, {"temporaires_ignores": [], "serveurs_connus": []})
+        self.assertEqual(len([l for l in err.splitlines() if l.strip()]), 3)
+
+
 class Exemple(unittest.TestCase):
     """config.exemple.toml (versionné) se lit sans avertissement et ne contient que des exemples génériques."""
 
@@ -241,6 +268,7 @@ class Exemple(unittest.TestCase):
             config.distrobox_applis(self.EXEMPLE)
             config.optimiser(self.EXEMPLE)
             config.contexte_resume(self.EXEMPLE)
+            config.securite(self.EXEMPLE)
         self.assertEqual(err.getvalue(), "")
         self.assertEqual([v.chemin for v in volumes[:2]], ["/var", "/var/home"])
         self.assertEqual(appimages, [])         # rien n'est suivi tant qu'on ne l'a pas décommenté

@@ -14,6 +14,11 @@ ColumnLayout {
     readonly property var services: page.sante.services_en_echec ?? null
     readonly property int nombreServices: services ? services.length : 0
     readonly property var bilan: page.sante.bilan_hebdo ?? null
+    readonly property var ligneMemoire: page.ligneMemoire(page.memoire)
+    readonly property var ligneMce: page.ligneMateriel(page.noyau)
+    readonly property var ligneUsb: page.ligneUsb(page.noyau)
+    // Côte à côte dès 40 unités de grille (comme Journal).
+    readonly property bool deuxColonnes: width >= Kirigami.Units.gridUnit * 40
 
     objectName: "sante-onglet-systeme"
     spacing: Style.gouttiere
@@ -40,6 +45,57 @@ ColumnLayout {
                         : "Aucun service en échec."
                 color: onglet.services === null ? Style.texteAttenue : Style.texte
                 wrapMode: Text.WordWrap
+            }
+        }
+    }
+
+    // La mémoire et le matériel (messages du noyau), côte à côte sur une fenêtre large.
+    GridLayout {
+        id: grille
+
+        // Tirée de la largeur de l'onglet : un maximum tiré de la grille la bloquerait.
+        readonly property real largeurColonne: onglet.deuxColonnes ? (onglet.width - columnSpacing) / 2 : onglet.width
+
+        Layout.fillWidth: true
+        columns: onglet.deuxColonnes ? 2 : 1
+        columnSpacing: Style.gouttiere
+        rowSpacing: Style.gouttiere
+
+        Carte {
+            objectName: "systeme-memoire"
+            Layout.alignment: Qt.AlignTop
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: grille.largeurColonne
+            Layout.maximumWidth: grille.largeurColonne
+            titre: "Mémoire"
+            teinte: onglet.page.teinteDe([onglet.ligneMemoire])
+
+            LigneControle {
+                nom: "ligne-memoire"
+                libelle: "Mémoire vive"
+                ligne: onglet.ligneMemoire
+            }
+        }
+        Carte {
+            objectName: "systeme-materiel"
+            Layout.alignment: Qt.AlignTop
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            Layout.preferredWidth: grille.largeurColonne
+            Layout.maximumWidth: grille.largeurColonne
+            titre: "Matériel"
+            teinte: onglet.page.teinteDe([onglet.ligneMce, onglet.ligneUsb])
+
+            LigneControle {
+                nom: "ligne-mce"
+                libelle: "Processeur et mémoire (MCE/EDAC)"
+                ligne: onglet.ligneMce
+            }
+            LigneControle {
+                nom: "ligne-usb"
+                libelle: "USB"
+                ligne: onglet.ligneUsb
             }
         }
     }

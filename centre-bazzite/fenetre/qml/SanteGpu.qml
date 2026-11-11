@@ -5,7 +5,7 @@ import org.kde.kirigami as Kirigami
 import "."
 
 // Onglet GPU et jeux de la santé (Task 19) : la carte graphique (température, consommation, VRAM), Ollama (avec
-// « Arrêter Ollama ») et le compte des gels de jeu capturés, dont le détail vit dans la page Jeux (v2b, D16).
+// « Arrêter Ollama »), les erreurs du pilote vues par le noyau et le compte des gels de jeu capturés, dont le détail vit dans la page Jeux (v2b, D16).
 ColumnLayout {
     id: onglet
 
@@ -70,6 +70,12 @@ ColumnLayout {
                 icon.name: "media-playback-stop"
                 onClicked: pont.arreterOllama()
             }
+        }
+        // Les erreurs du pilote vues par le noyau (Xid) : l'état vient du point noyau:gpu.
+        LigneControle {
+            nom: "gpu-noyau"
+            libelle: "Erreurs du pilote (noyau)"
+            ligne: onglet.page.ligneNoyauGpu(onglet.page.noyau)
         }
         // Les gels : leur compte et le même badge qu'avant ; la liste, ouvrable, est dans Jeux (onglet Gels).
         RowLayout {

@@ -1,6 +1,7 @@
 import contextlib
 import json
 import random
+import shutil
 import tempfile
 import threading
 import unittest
@@ -204,6 +205,7 @@ class NomDuJeu(unittest.TestCase):
 class Json(unittest.TestCase):
     def setUp(self):
         self.dossier = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.dossier, ignore_errors=True)
 
     def test_ecrire_lire_json_aller_retour(self):
         f = self.dossier / "a.json"

@@ -1,4 +1,5 @@
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -79,6 +80,7 @@ def _status(attente_checksum=None, boote_checksum="a" * 64):
 class DiffEnAttente(unittest.TestCase):
     def setUp(self):
         self.cache = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.cache, ignore_errors=True)
         p = mock.patch.object(rpmostree.commun, "CACHE", self.cache)
         p.start()
         self.addCleanup(p.stop)

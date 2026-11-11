@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from . import commun, config
+from . import securite as securite_mod
 
 UDISKS = "org.freedesktop.UDisks2"
 RAPPORT = commun.ETAT / "bilan-hebdo.json"
@@ -321,6 +322,54 @@ def lire_erreurs_disque(texte):
     return {"nombre": len(lignes), "exemples": lignes[-3:]}
 
 
+# Repris et adapté de Bilan Santé PC de BiasedMonkey, https://github.com/BiasedMonkey/bilan-sante (GPL-3.0).
+XID_APPLICATION = frozenset({13, 31, 43, 45, 68, 69})   # fautes d'un programme, pas de la carte
+_XID = re.compile(r"NVRM: Xid \([^)]*\): (\d+)", re.I)
+_MOTIFS_NOYAU = {
+    "gpu": re.compile(r"NVRM: Xid|GPU has fallen off the bus|amdgpu.*\b(timeout|reset|hang|fault|failed|error)\b"
+                      r"|ring \S+ timeout|gpu reset|nouveau.*\b(error|fault)\b|i915.*\b(hang|error)\b", re.I),
+    "materiel": re.compile(r"Machine check|Hardware Error|EDAC\b.*(\b(CE|UE)\b|corrected)", re.I),
+    "usb": re.compile(r"usb .*(error -71|error -110|Cannot enable|unable to enumerate|device descriptor read"
+                      r"|not accepting address)", re.I),
+    "plantages": re.compile(r"segfault at|general protection", re.I),
+}
+_TEMPERATURE = re.compile(r"temperature above threshold", re.I)
+
+
+def _message_noyau(ligne):
+    """Le texte après « kernel: » (sans date ni machine)."""
+    return ligne.split("kernel: ", 1)[-1].strip()
+
+
+def lire_noyau(texte):
+    """Lignes du journal du noyau classées : disque, gpu, materiel, usb, plantages (une fois par catégorie)."""
+    lignes = {c: [] for c in _MOTIFS_NOYAU}
+    graves, chute = 0, False
+    # la ligne de commande du noyau (ses options de démarrage) n'est pas une erreur
+    texte = "\n".join(l for l in texte.splitlines() if "command line" not in l.lower())
+    for ligne in texte.splitlines():
+        for categorie, motif in _MOTIFS_NOYAU.items():
+            if not motif.search(ligne) or (categorie == "materiel" and _TEMPERATURE.search(ligne)):
+                continue
+            lignes[categorie].append(_message_noyau(ligne))
+            if categorie == "gpu":
+                m = _XID.search(ligne)
+                numero = int(m.group(1)) if m else None
+                if numero == 79 or "fallen off the bus" in ligne.lower():
+                    chute = True
+                if numero not in XID_APPLICATION:
+                    graves += 1
+    def resume(c):
+        # les 3 derniers messages distincts, chacun à sa dernière occurrence, du plus ancien au plus récent
+        distincts = list(dict.fromkeys(reversed(lignes[c])))[:3][::-1]
+        return {"nombre": len(lignes[c]), "exemples": distincts}
+    resultat = {"disque": lire_erreurs_disque(texte)}
+    for c in ("gpu", "materiel", "usb", "plantages"):
+        resultat[c] = resume(c)
+    resultat["gpu"].update(graves=graves, chute=chute)
+    return resultat
+
+
 def taille_dossier(chemin):
     """Place occupée sur le disque (st_blocks × 512), sans suivre les liens ; erreurs ignorées."""
     total = 0
@@ -356,9 +405,10 @@ def telechargements_incomplets(dossiers):
     return sorted(suspects, key=lambda s: -s["octets"])
 
 
-def erreurs_disque():
-    code, sortie = commun.run(["journalctl", "-k", "-b", "--no-pager"], timeout=60)
-    return lire_erreurs_disque(sortie) if code == 0 else None
+def journal_noyau(run=None):
+    """Le journal du noyau du démarrage en cours, lu une seule fois et classé par catégorie ; None si illisible."""
+    code, sortie = (run or commun.run)(["journalctl", "-k", "-b", "--no-pager"], timeout=60)
+    return lire_noyau(sortie) if code == 0 else None
 
 
 def non_montes(attendus=None, est_monte=os.path.ismount):
@@ -450,17 +500,67 @@ def controles_perimes(heures=20, chemin=None, maintenant=None):
     return age >= timedelta(hours=heures)
 
 
+# Repris et adapté de Bilan Santé PC de BiasedMonkey,
+# https://github.com/BiasedMonkey/bilan-sante (GPL-3.0) : memoire() et _pression().
+def _pression(chemin):
+    """Pressure Stall Information : % du temps où des tâches attendent (`some avg300`) ; None si absente."""
+    try:
+        texte = Path(chemin).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for ligne in texte.splitlines():
+        genre, *champs = ligne.split()
+        if genre == "some":
+            for champ in champs:
+                cle, _, val = champ.partition("=")
+                if cle == "avg300":
+                    return float(val)
+    return None
+
+
+def memoire(proc=Path("/proc"), blocs=Path("/sys/block")):
+    """RAM, swap, attente due à la mémoire (PSI) et zram, en octets. Lit /proc et /sys, sans bibliothèque."""
+    ko = {}
+    for ligne in (proc / "meminfo").read_text(encoding="utf-8").splitlines():
+        cle, _, reste = ligne.partition(":")
+        champs = reste.split()
+        if champs:
+            ko[cle] = int(champs[0]) * 1024
+    zram = []
+    for dev in sorted(blocs.glob("zram*")):
+        try:
+            mm = (dev / "mm_stat").read_text(encoding="utf-8").split()
+            if len(mm) >= 2 and int(mm[0]):
+                algo = re.search(r"\[([^\]]+)\]", (dev / "comp_algorithm").read_text(encoding="utf-8"))
+                zram.append({"nom": dev.name, "donnees": int(mm[0]), "compresse": int(mm[1]),
+                             "algo": algo.group(1) if algo else ""})
+        except (OSError, ValueError):
+            continue
+    return {"total": ko["MemTotal"], "disponible": ko["MemAvailable"], "swap_total": ko["SwapTotal"],
+            "swap_utilise": ko["SwapTotal"] - ko["SwapFree"],
+            "attente": _pression(proc / "pressure" / "memory"), "zram": zram}
+
+
+def securite():
+    """Sécurité de la machine (ports, pare-feu, démarrage suspect, dossiers temporaires) : voir securite.collecter."""
+    return securite_mod.collecter()
+
+
 def collecter():
     """Mesures de santé ; les contrôles lents sont lus depuis leur cache, jamais calculés ici."""
     sources = {"ssd": ssd, "temperatures": temperatures, "gpu": gpu, "volumes": volumes,
                "services_en_echec": services_en_echec, "erreurs_journal": erreurs_journal,
                "plantages": plantages, "bilan_hebdo": bilan_hebdo, "gels": gels,
-               "ollama": ollama, "controles": lire_controles, "erreurs_disque": erreurs_disque,
-               "non_montes": non_montes, "attendus": volumes_attendus}
+               "ollama": ollama, "controles": lire_controles, "journal_noyau": journal_noyau,
+               "non_montes": non_montes, "attendus": volumes_attendus, "memoire": memoire,
+               "securite": securite}
     resultat = {}
     for cle, fonction in sources.items():
         try:
             resultat[cle] = fonction()
         except Exception:
             resultat[cle] = None
+    journal = resultat.pop("journal_noyau")
+    resultat["erreurs_disque"] = journal["disque"] if journal else None
+    resultat["noyau"] = {c: v for c, v in journal.items() if c != "disque"} if journal else None
     return resultat

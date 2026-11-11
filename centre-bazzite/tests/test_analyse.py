@@ -464,8 +464,12 @@ class Superviseur(BaseSuperviseur):
     def test_tuer_groupe_arrete_un_enfant_et_son_pool_forkserver(self):
         """Constat 4 : comme LinStat, l'enfant lance un pool forkserver (forkserver, processus d'analyse,
         resource_tracker qui ignore SIGTERM) ; tout son groupe disparaît."""
+        # le forkserver tué net ne retire pas son dossier pymp-* : il le crée dans un TMPDIR à nous, effacé ensuite
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
         p = subprocess.Popen([sys.executable, str(ENFANT_FORKSERVER)], start_new_session=True,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             env={**os.environ, "TMPDIR": tmp.name})
 
         def nettoyer():
             try:

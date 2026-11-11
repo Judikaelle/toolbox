@@ -1,7 +1,9 @@
 """Page Accueil : chargée pour de vrai dans Main.qml (QT_QPA_PLATFORM=offscreen), avec un etat.json de fixture.
 Les éléments testés portent un objectName ; on lit leurs propriétés QML."""
+import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -205,6 +207,34 @@ class AccueilSansModeJeu(Base):
     def test_accueil_badge_mode_jeu(self):
         """Fixture « accueil » : etat.json d'avant le mode jeu, aucun badge."""
         self.assertFalse(self.f.objet("badge-modejeu").property("visible"))
+
+
+class AccueilSante(Base):
+    """Un point de la rubrique santé en plus (securite:temporaires) : la tuile de l'accueil le compte, la liste « À regarder »
+    de la santé le montre."""
+
+    def ouvrir(self, plus, page="accueil"):
+        e = json.loads((ETATS / "complet" / "etat.json").read_text(encoding="utf-8"))
+        if plus:
+            e["points"].append({"id": "securite:temporaires", "gravite": "attention", "titre": "Des programmes dans /tmp",
+                                "detail": "d", "mesure": 2.0, "cran": 1.0, "action": None, "en_sourdine": False,
+                                "rubrique": "sante", "domaine": "securite"})
+        d = tempfile.TemporaryDirectory()
+        self.addCleanup(d.cleanup)
+        (Path(d.name) / "etat.json").write_text(json.dumps(e, ensure_ascii=False), encoding="utf-8")
+        f = Fenetre(Path(d.name), page)
+        self.addCleanup(f.fermer)
+        self.addCleanup(lambda: f.pont._minuteur.stop())
+        return f
+
+    def test_tuile_sante_compte_le_point_de_securite(self):
+        avant = self.ouvrir(False).objet("tuile-etat").property("valeur")
+        apres = self.ouvrir(True).objet("tuile-etat").property("valeur")
+        self.assertEqual(int(apres.split()[0]), int(avant.split()[0]) + 1, (avant, apres))
+
+    def test_liste_a_regarder_de_la_sante_montre_le_point(self):
+        f = self.ouvrir(True, "sante")
+        self.assertIsNotNone(f.objet("a-regarder-ligne-securite:temporaires"))
 
 
 if __name__ == "__main__":
